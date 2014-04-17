@@ -33,6 +33,8 @@
 
 package org.restlet.ext.odata.internal.edm;
 
+import java.beans.PropertyEditor;
+import java.beans.PropertyEditorManager;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
@@ -587,6 +589,8 @@ public class TypeUtils {
             result = Byte.class;
         } else if (edmTypeName.endsWith("String")) {
             result = String.class;
+        } else if (edmTypeName.startsWith("List")) {
+            result = List.class;
         }
 
         return result;
@@ -629,9 +633,65 @@ public class TypeUtils {
             result = "byte";
         } else if (edmTypeName.endsWith("String")) {
             result = "String";
+        }else if (edmTypeName.startsWith("List")) {
+            result = "List<Object>";
         }
 
         return result;
+    }
+    
+	/**
+	 * Gets the class type.
+	 *
+	 * @param Edm Type. For e.g. Edm.Double
+	 * @return the respective java class. For e.g. java.lang.Double in case of Edm.Double
+	 */
+	public static String getClassType(String type) {
+		try {
+			String edmType = TypeUtils.getCollectionType(type);
+			if (edmType == null){
+				return null;
+			}
+			if (edmType.toLowerCase().startsWith("edm.")) {
+				Class<?> javaClass = TypeUtils.toJavaClass(edmType);
+				return javaClass.getName();
+			} else {
+				String[] split = edmType.split("\\.");
+				String lower = split[0].toLowerCase();
+				StringBuilder sb = new StringBuilder();
+				sb.append(lower).append(".");
+				for (int i = 1; i < split.length; i++) {
+					sb.append(split[i]).append(".");
+				}
+				sb.deleteCharAt(sb.length() - 1);
+				return sb.toString();
+			}
+		} catch (Exception e) {
+			return null;
+		}
+	}
+    
+    /**
+     * Gets the collection type.
+     *
+     * @param String as per metadata. For e.g. Collection(Edm.Double)
+     * @return the respective edm type. For e.g. Edm.Double in case of Collection(Edm.Double)
+     */
+    public static String getCollectionType(String type){
+    	if(type != null && type.length()>11){
+    		return type.substring(11, type.length() - 1);
+    	}
+    	return null;
+    }
+    
+    public static Object convert(Class<?> targetType, String text) {
+    	try {
+            PropertyEditor editor = PropertyEditorManager.findEditor(targetType);
+            editor.setAsText(text);
+            return editor.getValue();
+		} catch (Exception e) {
+			return text;
+		}
     }
 
 }

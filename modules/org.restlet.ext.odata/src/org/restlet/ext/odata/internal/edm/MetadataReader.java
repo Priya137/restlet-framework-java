@@ -561,28 +561,18 @@ public class MetadataReader extends DefaultHandler {
             if (type.toLowerCase().startsWith("edm.")) {
                 property = new Property(attrs.getValue("Name"));
                 property.setType(new Type(attrs.getValue("Type")));
+                property.setDefaultValue(attrs.getValue("Default"));
             } else if (type.toLowerCase().startsWith("collection")) { 
             	ComplexProperty p = new ComplexProperty(attrs.getValue("Name"));
-            	String edmType = type.substring(11,	type.length() - 1);
-            	if(edmType.toLowerCase().startsWith("edm.")){
-            		Class<?> javaClass = TypeUtils.toJavaClass(edmType);
-                    p.setComplexType(new ComplexType("List<"+javaClass.getName()+">"));
-            	}else{
-            		String[] split = edmType.split("\\.");
-            		String lower = split[0].toLowerCase();
-            		StringBuilder sb = new StringBuilder();
-            		sb.append(lower).append(".");
-            		for (int i=1; i<split.length; i++) {
-						sb.append(split[i]).append(".");
-					}
-            		sb.deleteCharAt(sb.length()-1);
-            		p.setComplexType(new ComplexType("List<"+sb.toString()+">"));
-            	}
+            	String edmType = TypeUtils.getClassType(type);
+                p.setComplexType(new ComplexType("List<"+edmType+">"));
                 property = p;
+                property.setDefaultValue("new ArrayList<"+edmType+">()");
             } else {
                 ComplexProperty p = new ComplexProperty(attrs.getValue("Name"));
                 p.setComplexType(new ComplexType(attrs.getValue("Type")));
                 property = p;
+                property.setDefaultValue(attrs.getValue("Default"));
             }
 
             property.setDefaultValue(attrs.getValue("Default"));

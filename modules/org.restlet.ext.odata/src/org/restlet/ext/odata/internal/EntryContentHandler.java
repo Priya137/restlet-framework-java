@@ -34,6 +34,7 @@
 package org.restlet.ext.odata.internal;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -55,6 +56,7 @@ import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Mapping;
 import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.internal.edm.Property;
+import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -121,6 +123,11 @@ public class EntryContentHandler<T> extends EntryReader {
 
     /** Used to handle complex types. */
     private List<String> propertyPath;
+    
+    /** Used to cache the collection type. */
+    private List<String> mType;
+    
+    private String currentMType;
 
     /** Gleans text content. */
     private StringBuilder sb = null;
@@ -285,7 +292,8 @@ public class EntryContentHandler<T> extends EntryReader {
     }
 
     // Emmanuel Liossis: Multiple levels expand fix.
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public void endElement(String uri, String localName, String qName)
             throws SAXException {
         if (State.ASSOCIATION == getState()) {
@@ -344,26 +352,28 @@ public class EntryContentHandler<T> extends EntryReader {
                                 for (Field field : fields) {
                                     if (field.getName().equalsIgnoreCase(
                                             propertyPath.get(i))) {
-                                    	if(field.getType().getName().equals("java.util.List")){
-                                            /*if (field.getGenericType() instanceof ParameterizedType) {
-                                        		ParameterizedType listType = (ParameterizedType) field.getGenericType();
-                                                Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
-                                                Object newInstance = Class.forName(listClass.getName()).newInstance();
-                                                System.out.println(listClass.getName());
-                                                o = new ArrayList();
-                                            }else{*/
-                                                o = new ArrayList<Object>();
-                                            //}
-                                    		((List<Object>)o).add(sb.toString());
-                                    	}else{
                                     		o = field.getType().newInstance();
-                                    	}
                                         break;
                                     }
                                 }
                             } else if(o instanceof List){
-	                    		((List<Object>)o).add(sb.toString());
-	                        }
+                        	    Field field = obj.getClass().getDeclaredField(propertyPath.get(i));
+                            	if (field.getGenericType() instanceof ParameterizedType) {
+                            		ParameterizedType listType = (ParameterizedType) field.getGenericType();
+                                    Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+                                    if(TypeUtils.getCollectionType(currentMType).toLowerCase().startsWith("edm")){
+                                        Object value = TypeUtils.convert(listClass, sb.toString());
+                                        ((List)o).add(value);
+	                            	} else { // TODO: Onkar - Complex Property
+	                            		/*obj = listClass.newInstance();
+	                            		ReflectUtils.invokeSetter(obj, propertyPath.get(propertyPath.size() - 1),
+	                            				sb.toString());
+	                            		((List)o).add(obj);
+	                            		obj = o;
+	                            		continue;*/
+	                            	}
+                            	}
+                            }
                             ReflectUtils.invokeSetter(obj, propertyPath.get(i),
                                     o);
                             obj = o;
@@ -420,6 +430,7 @@ public class EntryContentHandler<T> extends EntryReader {
     public void endEntry(Entry entry) {
 
         this.states = new ArrayList<State>();
+        this.mType = new ArrayList<String>();
 
         // Handle Atom mapped values.
         for (Mapping m : metadata.getMappings()) {
@@ -621,6 +632,49 @@ public class EntryContentHandler<T> extends EntryReader {
     private void pushState(State state) {
         this.states.add(state);
     }
+    
+    /**
+     * Returns mType at the top of the heap.
+     * 
+     * @return The mType at the top of the heap.
+     */
+    private String getMType() {
+        String result = null;
+        if (this.mType != null) {
+            int size = this.mType.size();
+            if (size > 0) {
+                result = this.mType.get(size - 1);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns the mType at the top of the heap and removes it from the heap.
+     * 
+     * @return The mType at the top of the heap.
+     */
+	private String popMType() {
+		String result = null;
+		if (this.mType != null) {
+			int size = this.mType.size();
+			if (size > 0) {
+				result = this.mType.remove(size - 1);
+			}
+		}
+
+		return result;
+	}
+
+    /**
+     * Adds a new mType at the top of the heap.
+     * 
+     * @param mType
+     *            The mType to add.
+     */
+    private void pushMType(String mType) {
+        this.mType.add(mType);
+    }
 
     @Override
     public void startContent(Content content) {
@@ -734,8 +788,26 @@ public class EntryContentHandler<T> extends EntryReader {
                 sb = new StringBuilder();
                 propertyPath.add(localName);
             }
+            String type = attrs.getValue("m:type");
+            if(type != null && type.toLowerCase().startsWith("collection")){
+            	currentMType = type;
+            	String edmType = TypeUtils.getCollectionType(type);
+            	// cache the type to create the CollectionType object later
+            	if(!edmType.toLowerCase().startsWith("edm")){
+                	this.pushMType(type);
+            	}
+            }
         } else if (State.PROPERTY == getState()) {
             sb = new StringBuilder();
+            String type = attrs.getValue("m:type");
+            if(type != null && type.toLowerCase().startsWith("collection")){
+            	currentMType = type;
+            	String edmType = TypeUtils.getCollectionType(type);
+            	// cache the type to create the CollectionType object later
+            	if(!edmType.toLowerCase().startsWith("edm")){
+                	this.pushMType(type);
+            	}
+            }
             propertyPath.add(localName);
         } else if (State.ENTRY == getState()) {
             if (localName.equalsIgnoreCase("link") && association != null) {
@@ -802,6 +874,7 @@ public class EntryContentHandler<T> extends EntryReader {
             }
         } else {
             this.states = new ArrayList<State>();
+            this.mType = new ArrayList<String>();
             pushState(State.ENTRY);
             eltPath = new ArrayList<String>();
             // Instantiate the entity
