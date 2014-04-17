@@ -215,13 +215,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	
 
 					propertyName = ReflectUtils.normalize(name);
-					@SuppressWarnings("unused")
-					Class<?> javaClass;
 					Object value = null;
 					if(typeAttribute == null){ // Simple String
 						value = reader.getElementText();;
 					}else if(typeAttribute.getValue().toLowerCase().startsWith("edm") && !isNull){ // EDM Type
-						javaClass = TypeUtils.toJavaClass(typeAttribute.getValue());
 						value = TypeUtils.fromEdm(reader.getElementText(), typeAttribute.getValue());
 					}else if(typeAttribute.getValue().toLowerCase().startsWith("collection")){// collection type
 						Object o = ReflectUtils.getPropertyObject(entity, propertyName);

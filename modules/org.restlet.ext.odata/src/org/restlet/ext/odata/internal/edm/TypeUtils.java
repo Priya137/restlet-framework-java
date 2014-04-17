@@ -107,9 +107,9 @@ public class TypeUtils {
             } else if (adoNetType.endsWith("Decimal")) {
                 result = decimalFormat.parseObject(value);
             } else if (adoNetType.endsWith("Single")) {
-                result = singleFormat.parseObject(value);
+                result = Float.valueOf(singleFormat.parseObject(value).toString());
             } else if (adoNetType.endsWith("Double")) {
-                result = doubleFormat.parseObject(value);
+                result = Double.valueOf(doubleFormat.parseObject(value).toString());
             } else if (adoNetType.endsWith("Guid")) {
                 result = value;
             } else if (adoNetType.endsWith("Int16")) {
@@ -634,7 +634,7 @@ public class TypeUtils {
             result = "Edm.Int32";
         } else if (edmTypeName.endsWith("long")) {
             result = "Edm.Int64";
-        } else if (edmTypeName.endsWith("String")) {
+        } else if (edmTypeName.endsWith("string")) {
             result = "Edm.String";
         }
 
@@ -653,7 +653,7 @@ public class TypeUtils {
         if (edmTypeName.endsWith("Binary")) {
             result = "byte[]";
         } else if (edmTypeName.endsWith("Boolean")) {
-            result = "boolean";
+            result = "Boolean";
         } else if (edmTypeName.endsWith("DateTime")) {
             result = "Date";
         } else if (edmTypeName.endsWith("DateTimeOffset")) {
@@ -663,19 +663,19 @@ public class TypeUtils {
         } else if (edmTypeName.endsWith("Decimal")) {
             result = "java.math.BigDecimal";
         } else if (edmTypeName.endsWith("Single")) {
-            result = "float";
+            result = "Float";
         } else if (edmTypeName.endsWith("Double")) {
-            result = "double";
+            result = "Double";
         } else if (edmTypeName.endsWith("Guid")) {
             result = "String";
         } else if (edmTypeName.endsWith("Int16")) {
-            result = "short";
+            result = "Short";
         } else if (edmTypeName.endsWith("Int32")) {
-            result = "int";
+            result = "Integer";
         } else if (edmTypeName.endsWith("Int64")) {
-            result = "long";
+            result = "Long";
         } else if (edmTypeName.endsWith("Byte")) {
-            result = "byte";
+            result = "Byte";
         } else if (edmTypeName.endsWith("String")) {
             result = "String";
         }

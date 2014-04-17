@@ -354,6 +354,14 @@ public class Metadata extends SaxRepresentation {
                             break;
                         }
                     }
+                    for(ComplexProperty property : ct.getComplexProperties()){
+                    	if (property.getName().equals(propertyName)
+                                || property.getNormalizedName()
+                                        .equals(propertyName)) {
+                            result = property;
+                            break;
+                        }
+                    }
                 }
             }
 

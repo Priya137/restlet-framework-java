@@ -1148,7 +1148,17 @@ public class Service {
                         }
                     }
                     
-                    private void writeCollectionProperty(XmlWriter writer, Object value, Property prop) throws SAXException {
+                    /**
+                     * Write collection property element.
+                     *
+                     * @param writer the writer
+                     * @param entity the entity
+                     * @param value the value
+                     * @param prop the prop
+                     * @param nullAttrs the null attrs
+                     * @throws SAXException the SAX exception
+                     */
+                    private void writeCollectionProperty(XmlWriter writer, Object entity, Object value, Property prop, AttributesImpl nullAttrs) throws SAXException {
 						if (value instanceof List) {							
 							try {
 								Field field = entity.getClass().getDeclaredField(
@@ -1158,9 +1168,14 @@ public class Service {
 									ParameterizedType listType = (ParameterizedType) field
 											.getGenericType();
 									Class<?> listClass = (Class<?>) listType
-											.getActualTypeArguments()[0];
-									
-									String mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
+											.getActualTypeArguments()[0]; // get the parameterized class 
+									String mType = null;
+									if(listClass.getName().toLowerCase().startsWith("java")){ // collection of primitives
+										mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
+									}else{	// collection of complex
+										String[] className = listClass.getName().split("\\.");
+										mType = "Collection("+ className[0].toUpperCase() + "." + className[1] + ")";
+									}
 									AttributesImpl typeAttr = new AttributesImpl();
 									typeAttr.addAttribute(
 										WCF_DATASERVICES_METADATA_NAMESPACE,
@@ -1172,7 +1187,15 @@ public class Service {
 									
 									List obj = (List) value;
 									for (Object object : obj) {
-										writer.dataElement(WCF_DATASERVICES_NAMESPACE, XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), object.toString());
+										if(object.toString().length()>0){
+											writer.dataElement(WCF_DATASERVICES_NAMESPACE, XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), object.toString());
+										}else{
+											writer.emptyElement(
+													WCF_DATASERVICES_NAMESPACE,
+													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(),
+													nullAttrs);
+										}
+										
 									}
 								}
 							} catch (SecurityException e) {
@@ -1201,14 +1224,17 @@ public class Service {
 
 								if (value != null) {
 									AttributesImpl typeAttr = new AttributesImpl();
-									if (prop instanceof ComplexProperty) {
-										if (value instanceof List) {
+									if (prop instanceof ComplexProperty) { // if this is collection or complex type
+										if (value instanceof List) { // collection
 											writeCollectionProperty(writer,
-													value, prop);
-										} else {
+													entity, value, prop, nullAttrs);
+										} else { // complex type
+											String packageName = entity.getClass().getName().split("\\.")[0];
+											// prefix the namespace for m:type 
+											packageName = packageName.toUpperCase() + "." ;
 											typeAttr.addAttribute(
 													WCF_DATASERVICES_METADATA_NAMESPACE,
-													"type", "type", "string",
+													"type", "type", "string",packageName + 
 													((ComplexProperty) prop)
 															.getComplexType()
 															.getName());
@@ -1216,6 +1242,7 @@ public class Service {
 													WCF_DATASERVICES_NAMESPACE,
 													prop.getName(), prop.getName(),
 													typeAttr);
+											// write data
 											write(writer, value, nullAttrs);
 										}
 									} else {

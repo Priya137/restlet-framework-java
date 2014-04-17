@@ -252,6 +252,7 @@ public class ReflectUtils {
                     if ((method.getParameterTypes() != null)
                             && (method.getParameterTypes().length == 1)) {
                         setter = method;
+                        break;
                     }
                 }
             }
