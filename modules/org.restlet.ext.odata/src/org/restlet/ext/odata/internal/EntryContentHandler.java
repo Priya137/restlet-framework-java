@@ -125,8 +125,6 @@ public class EntryContentHandler<T> extends EntryReader {
     private List<String> propertyPath;
     
     /** Used to cache the collection type. */
-    private List<String> mType;
-    
     private String currentMType;
 
     /** Gleans text content. */
@@ -430,7 +428,6 @@ public class EntryContentHandler<T> extends EntryReader {
     public void endEntry(Entry entry) {
 
         this.states = new ArrayList<State>();
-        this.mType = new ArrayList<String>();
 
         // Handle Atom mapped values.
         for (Mapping m : metadata.getMappings()) {
@@ -633,49 +630,6 @@ public class EntryContentHandler<T> extends EntryReader {
         this.states.add(state);
     }
     
-    /**
-     * Returns mType at the top of the heap.
-     * 
-     * @return The mType at the top of the heap.
-     */
-    private String getMType() {
-        String result = null;
-        if (this.mType != null) {
-            int size = this.mType.size();
-            if (size > 0) {
-                result = this.mType.get(size - 1);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Returns the mType at the top of the heap and removes it from the heap.
-     * 
-     * @return The mType at the top of the heap.
-     */
-	private String popMType() {
-		String result = null;
-		if (this.mType != null) {
-			int size = this.mType.size();
-			if (size > 0) {
-				result = this.mType.remove(size - 1);
-			}
-		}
-
-		return result;
-	}
-
-    /**
-     * Adds a new mType at the top of the heap.
-     * 
-     * @param mType
-     *            The mType to add.
-     */
-    private void pushMType(String mType) {
-        this.mType.add(mType);
-    }
-
     @Override
     public void startContent(Content content) {
         if (State.ENTRY == getState()) {
@@ -791,22 +745,12 @@ public class EntryContentHandler<T> extends EntryReader {
             String type = attrs.getValue("m:type");
             if(type != null && type.toLowerCase().startsWith("collection")){
             	currentMType = type;
-            	String edmType = TypeUtils.getCollectionType(type);
-            	// cache the type to create the CollectionType object later
-            	if(!edmType.toLowerCase().startsWith("edm")){
-                	this.pushMType(type);
-            	}
             }
         } else if (State.PROPERTY == getState()) {
             sb = new StringBuilder();
             String type = attrs.getValue("m:type");
             if(type != null && type.toLowerCase().startsWith("collection")){
             	currentMType = type;
-            	String edmType = TypeUtils.getCollectionType(type);
-            	// cache the type to create the CollectionType object later
-            	if(!edmType.toLowerCase().startsWith("edm")){
-                	this.pushMType(type);
-            	}
             }
             propertyPath.add(localName);
         } else if (State.ENTRY == getState()) {
@@ -863,6 +807,7 @@ public class EntryContentHandler<T> extends EntryReader {
 
         if (getState() != null) {
             switch (getState()) {
+            // TODO:Onkar check how association affects the Entryparsing in Stax
             case ASSOCIATION:
                 if (association.isToMany())
                     inlineFeedHandler.startEntry(entry);
@@ -874,7 +819,6 @@ public class EntryContentHandler<T> extends EntryReader {
             }
         } else {
             this.states = new ArrayList<State>();
-            this.mType = new ArrayList<String>();
             pushState(State.ENTRY);
             eltPath = new ArrayList<String>();
             // Instantiate the entity

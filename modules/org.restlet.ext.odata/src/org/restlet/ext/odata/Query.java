@@ -51,6 +51,8 @@ import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.FeedContentHandler;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
+import org.restlet.ext.odata.xml.AtomFeedHandler;
+import org.restlet.ext.xml.format.StreamHandler;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -368,23 +370,14 @@ public class Query<T> implements Iterable<T> {
                 // Guess the type of query based on the URI structure
                 switch (guessType(targetUri)) {
                 case TYPE_ENTITY_SET:
-                    FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
-                            entityClass, entityType, metadata, getLogger());
-                    setFeed(new Feed(result, feedContentHandler));
-                    this.count = feedContentHandler.getCount();
-                    this.entities = feedContentHandler.getEntities();
-                    break;
                 case TYPE_ENTITY:
-                    EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
-                            entityClass, entityType, metadata, getLogger());
                     Feed feed = new Feed();
-                    feed.getEntries().add(
-                            new Entry(result, entryContentHandler));
-                    setFeed(feed);
-                    entities = new ArrayList<T>();
-                    if (entryContentHandler.getEntity() != null) {
-                        entities.add(entryContentHandler.getEntity());
-                    }
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType.getName(), entityType, entityClass);
+                    feedHandler.setFeed(feed);
+                    feedHandler.parse(result.getReader());
+                    this.setFeed(feed);
+                    this.count = -1;// no need to set as we send $count request later
+                    this.entities = feedHandler.getEntities();
                     break;
                 case TYPE_UNKNOWN:
                     // Guess the type of query based on the returned
@@ -394,13 +387,13 @@ public class Query<T> implements Iterable<T> {
                     String string = rep.getText().substring(0,
                             Math.min(100, rep.getText().length()));
                     if (string.contains("<feed")) {
-                        feedContentHandler = new FeedContentHandler<T>(
+                    	FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
                                 entityClass, entityType, metadata, getLogger());
                         setFeed(new Feed(rep, feedContentHandler));
                         this.count = feedContentHandler.getCount();
                         this.entities = feedContentHandler.getEntities();
                     } else if (string.contains("<entry")) {
-                        entryContentHandler = new EntryContentHandler<T>(
+                    	EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
                                 entityClass, entityType, metadata, getLogger());
                         feed = new Feed();
                         feed.getEntries().add(
