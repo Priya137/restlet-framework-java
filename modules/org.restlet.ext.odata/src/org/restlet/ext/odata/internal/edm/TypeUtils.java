@@ -35,6 +35,7 @@ package org.restlet.ext.odata.internal.edm;
 
 import java.beans.PropertyEditor;
 import java.beans.PropertyEditorManager;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
@@ -55,6 +56,7 @@ import org.restlet.ext.odata.internal.reflect.ReflectUtils;
  */
 public class TypeUtils {
 
+	// Onkar : Need to give conversion for List ?? Or should we set type of List<Object> as ComplexType
     /** Formater for the EDM DateTime type. */
     public static final List<String> dateTimeFormats = Arrays.asList(
             "yyyy-MM-dd'T'HH:mm:ssz", "yyyy-MM-dd'T'HH:mm:ss",
@@ -90,7 +92,6 @@ public class TypeUtils {
         if (value == null) {
             return null;
         }
-
         Object result = null;
         try {
             if (adoNetType.endsWith("Binary")) {
@@ -290,6 +291,8 @@ public class TypeUtils {
         } else if (adoNetType.endsWith("Decimal")) {
             if ((Double.class).isAssignableFrom(value.getClass())) {
                 result = toEdmDecimal((Double) value);
+            }else if ((BigDecimal.class).isAssignableFrom(value.getClass())) {
+                result = toEdmDecimal((BigDecimal) value);
             }
         } else if (adoNetType.endsWith("Single")) {
             if ((Float.class).isAssignableFrom(value.getClass())) {
@@ -388,6 +391,18 @@ public class TypeUtils {
     public static String toEdmDecimal(double value) {
         return decimalFormat.format(value);
     }
+    
+    /**
+     * Convert the given value to the String representation of a EDM Decimal
+     * value.
+     * 
+     * @param value
+     *            The value to convert.
+     * @return The value converted as String object.
+     */
+    public static String toEdmDecimal(BigDecimal value) {
+        return decimalFormat.format(value);
+    }
 
     /**
      * Convert the given value to the String representation of a EDM Double
@@ -477,6 +492,8 @@ public class TypeUtils {
         } else if (adoNetType.endsWith("Decimal")) {
             if ((Double.class).isAssignableFrom(value.getClass())) {
                 result = toEdmDecimal((Double) value);
+            } else if ((BigDecimal.class).isAssignableFrom(value.getClass())) {
+                result = toEdmDecimal((BigDecimal) value);
             }
         } else if (adoNetType.endsWith("Single")) {
             if ((Float.class).isAssignableFrom(value.getClass())) {
@@ -572,9 +589,9 @@ public class TypeUtils {
         } else if (edmTypeName.endsWith("Time")) {
             result = Long.class;
         } else if (edmTypeName.endsWith("Decimal")) {
-            result = Double.class;
+            result = BigDecimal.class;
         } else if (edmTypeName.endsWith("Single")) {
-            result = Double.class;
+            result = Float.class;
         } else if (edmTypeName.endsWith("Double")) {
             result = Double.class;
         } else if (edmTypeName.endsWith("Guid")) {
@@ -591,6 +608,34 @@ public class TypeUtils {
             result = String.class;
         } else if (edmTypeName.startsWith("List")) {
             result = List.class;
+        }
+
+        return result;
+    }
+    
+    public static String toEdmType(String edmTypeName) {
+        String result = "Object";
+        edmTypeName = edmTypeName.toLowerCase();
+        if (edmTypeName.endsWith("byte")) {
+            result = "Edm.Byte";
+        } else if (edmTypeName.endsWith("boolean")) {
+            result = "Edm.Boolean";
+        } else if (edmTypeName.endsWith("Date")) {
+            result = "Edm.DateTime";
+        } else if (edmTypeName.endsWith("bigdecimal")) {
+            result = "Edm.Decimal";
+        } else if (edmTypeName.endsWith("float")) {
+            result = "Edm.Single";
+        } else if (edmTypeName.endsWith("double")) {
+            result = "Edm.Double";
+        } else if (edmTypeName.endsWith("short")) {
+            result = "Edm.Int16";
+        } else if (edmTypeName.endsWith("int")) {
+            result = "Edm.Int32";
+        } else if (edmTypeName.endsWith("long")) {
+            result = "Edm.Int64";
+        } else if (edmTypeName.endsWith("String")) {
+            result = "Edm.String";
         }
 
         return result;
@@ -616,9 +661,9 @@ public class TypeUtils {
         } else if (edmTypeName.endsWith("Time")) {
             result = "long";
         } else if (edmTypeName.endsWith("Decimal")) {
-            result = "double";
+            result = "java.math.BigDecimal";
         } else if (edmTypeName.endsWith("Single")) {
-            result = "double";
+            result = "float";
         } else if (edmTypeName.endsWith("Double")) {
             result = "double";
         } else if (edmTypeName.endsWith("Guid")) {
@@ -633,8 +678,6 @@ public class TypeUtils {
             result = "byte";
         } else if (edmTypeName.endsWith("String")) {
             result = "String";
-        }else if (edmTypeName.startsWith("List")) {
-            result = "List<Object>";
         }
 
         return result;
@@ -684,6 +727,13 @@ public class TypeUtils {
     	return null;
     }
     
+    /**
+     * Convert the String value to primitive class type. 
+     *
+     * @param targetType the target type
+     * @param text the text
+     * @return the object
+     */
     public static Object convert(Class<?> targetType, String text) {
     	try {
             PropertyEditor editor = PropertyEditorManager.findEditor(targetType);

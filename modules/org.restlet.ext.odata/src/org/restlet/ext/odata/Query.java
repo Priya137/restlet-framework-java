@@ -52,7 +52,6 @@ import org.restlet.ext.odata.internal.FeedContentHandler;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.xml.AtomFeedHandler;
-import org.restlet.ext.xml.format.StreamHandler;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -373,6 +372,7 @@ public class Query<T> implements Iterable<T> {
                 case TYPE_ENTITY:
                     Feed feed = new Feed();
                     AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType.getName(), entityType, entityClass);
+                    ///AtomFeedCursorHandler<T> feedHandler = new AtomFeedCursorHandler<T>(entityType.getName(), entityType, entityClass);
                     feedHandler.setFeed(feed);
                     feedHandler.parse(result.getReader());
                     this.setFeed(feed);

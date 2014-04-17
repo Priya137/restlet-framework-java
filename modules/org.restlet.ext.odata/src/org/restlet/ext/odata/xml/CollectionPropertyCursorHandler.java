@@ -3,15 +3,14 @@ package org.restlet.ext.odata.xml;
 import static org.restlet.ext.xml.format.XmlFormatParser.DATASERVICES_ELEMENT;
 import static org.restlet.ext.xml.format.XmlFormatParser.M_TYPE;
 import static org.restlet.ext.xml.format.XmlFormatParser.NS_DATASERVICES;
+import static org.restlet.ext.xml.format.XmlFormatParser.NS_METADATA;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
 
-import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
+import javax.xml.stream.XMLStreamReader;
 
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 
@@ -20,7 +19,7 @@ import org.restlet.ext.odata.internal.edm.TypeUtils;
  * 
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  */
-public class CollectionPropertyHandler {
+public class CollectionPropertyCursorHandler {
 
 	/**
 	 * Parses the collection of either simple type or complex type
@@ -33,31 +32,28 @@ public class CollectionPropertyHandler {
 	 * @return the t
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static <T> T parse(XMLEventReader reader, T entity,
-			StartElement startElement, T parentEntity) {
+	public static <T> T parse(XMLStreamReader reader, T entity,
+			String startElement, T parentEntity) {
 
 		try {
 			Object obj = null;
 			String collectionType;
+			String currentMType = reader.getAttributeValue(NS_METADATA, M_TYPE.getLocalPart());
 			while (reader.hasNext()) {
-				XMLEvent event = reader.nextEvent();
+				reader.next();
 
-				if (event.isEndElement()
-						&& event.asEndElement().getName()
-								.equals(startElement.getName())) {
+				if (reader.isEndElement()
+						&& reader.getLocalName().equals(startElement)) {
 					return entity;
 				}
 
-				if (event.isStartElement()
-						&& event.asStartElement().getName().getNamespaceURI()
+				if (reader.isStartElement()
+						&& reader.getNamespaceURI()
 								.equals(NS_DATASERVICES)
-						&& event.asStartElement().getName()
-								.equals(DATASERVICES_ELEMENT)) {
-					if (entity instanceof List) { // check first if it is type of List
-						Field field = parentEntity.getClass().getDeclaredField(
-								startElement.getName().getLocalPart());
-						String currentMType = startElement.getAttributeByName(
-								M_TYPE).getValue();
+						&& reader.getLocalName()
+								.equals(DATASERVICES_ELEMENT.getLocalPart())) {
+					if (entity instanceof List && currentMType != null) { // check first if it is type of List
+						Field field = parentEntity.getClass().getDeclaredField(startElement);
 						if (field.getGenericType() instanceof ParameterizedType) {
 							// determine what type of collection it is
 							ParameterizedType listType = (ParameterizedType) field
@@ -74,8 +70,8 @@ public class CollectionPropertyHandler {
 							} else { // complex type
 								obj = listClass.newInstance();
 								// create a new instance and populate the properties
-								AtomFeedHandler.parseProperties(reader,
-										event.asStartElement(), obj);
+								AtomFeedCursorHandler.parseProperties(reader,
+										reader.getLocalName(), obj);
 								((List) entity).add(obj);
 							}
 						}

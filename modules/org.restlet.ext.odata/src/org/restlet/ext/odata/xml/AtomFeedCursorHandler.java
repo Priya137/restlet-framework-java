@@ -5,13 +5,9 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.namespace.QName;
-import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.events.Attribute;
-import javax.xml.stream.events.StartElement;
-import javax.xml.stream.events.XMLEvent;
+import javax.xml.stream.XMLStreamReader;
 
 import org.restlet.data.MediaType;
 import org.restlet.data.Metadata;
@@ -34,7 +30,7 @@ import org.restlet.ext.xml.format.XmlFormatParser;
  * 
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  */
-public class AtomFeedHandler<T> extends XmlFormatParser implements
+public class AtomFeedCursorHandler<T> extends XmlFormatParser implements
 		FormatParser<Feed> {
 
 	/** The metadata. */
@@ -114,7 +110,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param entityType the entity type
 	 * @param entityClass the entity class
 	 */
-	public AtomFeedHandler(String entitySetName, EntityType entityType, Class<?> entityClass) {
+	public AtomFeedCursorHandler(String entitySetName, EntityType entityType, Class<?> entityClass) {
 		this.entitySetName = entitySetName;
 		this.entityType = entityType;
 		this.entityClass = entityClass;
@@ -139,27 +135,24 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		try {
 
 			XMLInputFactory factory = XMLInputFactory.newInstance();
-			XMLEventReader eventReader = factory.createXMLEventReader(reader);
+			XMLStreamReader xmlStreamReader = factory.createXMLStreamReader(reader);
 
-			while (eventReader.hasNext()) {
-				XMLEvent event;
-				event = eventReader.nextEvent();
+			while (xmlStreamReader.hasNext()) {
+				xmlStreamReader.next();
 
-				if (isStartElement(event, ATOM_ENTRY)) {
+				if (isStartElement(xmlStreamReader, ATOM_ENTRY)) {
 					@SuppressWarnings("unchecked")
 					// create instance of entity, parse it and add it to list of entities
 					T entity = (T) entityClass.newInstance();
-					this.parseEntry(eventReader, event.asStartElement(), entitySet, entity);
+					this.parseEntry(xmlStreamReader, xmlStreamReader.getLocalName(),
+							entitySet, entity);
 					this.entities.add(entity);
 
-				} else if (isStartElement(event, ATOM_LINK)) {
-					if ("next".equals(event.asStartElement()
-							.getAttributeByName(new QName("rel")).getValue())) {
-						this.getFeed().setBaseReference(event.asStartElement()
-								.getAttributeByName(new QName("href"))
-								.getValue());
+				} else if (isStartElement(xmlStreamReader, ATOM_LINK)) {
+					if ("next".equals(getAttributeValueIfExists(xmlStreamReader,"rel"))) {
+						this.getFeed().setBaseReference(getAttributeValueIfExists(xmlStreamReader, "href"));
 					}
-				} else if (isEndElement(event, ATOM_FEED)) {
+				} else if (isEndElement(xmlStreamReader, ATOM_FEED)) {
 					// return from a sub feed, if we went down the hierarchy
 					break;
 				}
@@ -173,7 +166,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 			e.printStackTrace();
 		}
 
-		return this.getFeed();
+		return feed;
 
 	}
 
@@ -188,30 +181,25 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T parseProperties(
-			XMLEventReader reader, StartElement propertiesElement, T entity) {
+			XMLStreamReader reader, String propertiesElement, T entity) {
 
 		try {
 			String propertyName = null;
 			while (reader.hasNext()) {
-				XMLEvent event = reader.nextEvent();
-	
-				if (event.isEndElement()
-						&& event.asEndElement().getName()
-								.equals(propertiesElement.getName())) {
+				reader.next();
+				if (reader.isEndElement() && reader.getLocalName().equals(propertiesElement)) {
 					return entity;
 				}
 				
-				if (event.isStartElement()
-						&& event.asStartElement().getName().getNamespaceURI()
+				if (reader.isStartElement()
+						&& reader.getNamespaceURI()
 								.equals(NS_DATASERVICES)) {
 	
-					String name = event.asStartElement().getName().getLocalPart();
-					Attribute typeAttribute = event.asStartElement()
-							.getAttributeByName(M_TYPE);
-					Attribute nullAttribute = event.asStartElement()
-							.getAttributeByName(M_NULL);
+					String name = reader.getLocalName();
+					String typeAttribute = getAttributeValueIfExists(reader, M_TYPE.getLocalPart());
+					String nullAttribute = getAttributeValueIfExists(reader, M_NULL.getLocalPart());
 					boolean isNull = nullAttribute != null
-							&& "true".equals(nullAttribute.getValue());
+							&& "true".equals(nullAttribute);
 	
 
 					propertyName = ReflectUtils.normalize(name);
@@ -220,18 +208,18 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					Object value = null;
 					if(typeAttribute == null){ // Simple String
 						value = reader.getElementText();;
-					}else if(typeAttribute.getValue().toLowerCase().startsWith("edm") && !isNull){ // EDM Type
-						javaClass = TypeUtils.toJavaClass(typeAttribute.getValue());
-						value = TypeUtils.fromEdm(reader.getElementText(), typeAttribute.getValue());
-					}else if(typeAttribute.getValue().toLowerCase().startsWith("collection")){// collection type
+					}else if(typeAttribute.toLowerCase().startsWith("edm") && !isNull){ // EDM Type
+						javaClass = TypeUtils.toJavaClass(typeAttribute);
+						value = TypeUtils.fromEdm(reader.getElementText(), typeAttribute);
+					}else if(typeAttribute.toLowerCase().startsWith("collection")){// collection type
 						Object o = ReflectUtils.getPropertyObject(entity, propertyName);
 						// Delegate the collection handling to respective handler.
-						CollectionPropertyHandler.parse(reader, o, event.asStartElement(), entity);
+						CollectionPropertyCursorHandler.parse(reader, o, reader.getLocalName(), entity); 
 					} else if(!isNull){// complex type
 						// get or create the property instance
 						Object o = ReflectUtils.getPropertyObject(entity, propertyName);
 						// populate the object
-						parseProperties(reader, event.asStartElement(), (T) o);
+						parseProperties(reader, reader.getLocalName(), (T) o);
 						// set it back to parent entity
 						ReflectUtils.invokeSetter(entity, propertyName, o);
 					}
@@ -256,9 +244,9 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param event the event
 	 * @param entity the entity
 	 */
-	private void parseDSAtomEntry(EntityType entityType, XMLEventReader reader, XMLEvent event, T entity) {
+	private void parseDSAtomEntry(EntityType entityType, XMLStreamReader reader, String startElement, T entity) {
 		// as end element is not included in parseProperties, we need a wrapper method around it to handle it.
-		AtomFeedHandler.parseProperties(reader, event.asStartElement(), entity);
+		AtomFeedCursorHandler.parseProperties(reader, startElement, entity);
 	}
 
 	//TODO: Onkar implement this method later
@@ -311,8 +299,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param entity the entity
 	 * @return the t
 	 */
-	private T parseEntry(XMLEventReader reader,
-			StartElement entryElement, EntitySet entitySet, T entity) {
+	private T parseEntry(XMLStreamReader reader,
+			String entryElement, EntitySet entitySet, T entity) {
 
 		String id = null;
 		String title = null;
@@ -320,16 +308,15 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		String updated = null;
 		String contentType = null;
 		List<Link> atomLinks = new ArrayList<Link>();
-		
+
+		//String etag = getAttributeValueIfExists(entryElement, M_ETAG);
+
 		Entry rt = null;
 
-		while (reader.hasNext()) {
-			try {
-				XMLEvent event;
-				event = reader.nextEvent();
-				if (event.isEndElement()
-						&& event.asEndElement().getName()
-								.equals(entryElement.getName())) {
+		try {
+			while (reader.hasNext()) {
+				reader.next();
+				if (isEndElement(reader, ATOM_ENTRY)) {
 					rt.setId(id); // http://localhost:8810/Oneoff01.svc/Comment(1)
 					rt.setTitle(title);
 					rt.setSummary(summary);
@@ -337,20 +324,20 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					return entity;
 				}
 	
-				if (isStartElement(event, ATOM_ID)) {
+				if (isStartElement(reader, ATOM_ID)) {
 					id = reader.getElementText();
-				} else if (isStartElement(event, ATOM_TITLE)) {
+				} else if (isStartElement(reader, ATOM_TITLE)) {
 					title = reader.getElementText();
-				} else if (isStartElement(event, ATOM_SUMMARY)) {
+				} else if (isStartElement(reader, ATOM_SUMMARY)) {
 					summary = reader.getElementText();
-				} else if (isStartElement(event, ATOM_UPDATED)) {
+				} else if (isStartElement(reader, ATOM_UPDATED)) {
 					updated = reader.getElementText();
-				} else if (isStartElement(event, ATOM_LINK)) {
-					Link link = parseAtomLink(reader, event.asStartElement(),
+				} else if (isStartElement(reader, ATOM_LINK)) {
+					Link link = parseAtomLink(reader, reader.getLocalName(),
 							entitySet, entity);
 					atomLinks.add(link);
-				} else if (isStartElement(event, M_PROPERTIES)) {
-					parseDSAtomEntry(entitySet.getType(), reader, event, entity);
+				} else if (isStartElement(reader, M_PROPERTIES)) {
+					parseDSAtomEntry(entitySet.getType(), reader, reader.getLocalName(), entity);
 				/*} else if (isStartElement(event, M_ACTION)) {
 					AtomFunction function = parseAtomFunction(reader,
 							event.asStartElement());
@@ -363,22 +350,17 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					functions.put(function.getFQFunctionName(), metadata
 							.findFunctionImport(function.title,
 									entitySet.getType(), FunctionKind.Function));*/
-				} else if (isStartElement(event, ATOM_CONTENT)) {
-					contentType = getAttributeValueIfExists(event.asStartElement(),
-							"type");
+				} else if (isStartElement(reader, ATOM_CONTENT)) {
+					contentType = getAttributeValueIfExists(reader, M_TYPE.getLocalPart());
 					if (MediaType.APPLICATION_XML.getName().equals(contentType)) {
-						StartElement contentElement = event.asStartElement();
-						StartElement valueElement = null;
 						while (reader.hasNext()) {
-							// handle content in separate handlers
-							XMLEvent event2;
 							try {
-								event2 = reader.nextEvent();
-								if (valueElement == null && event2.isStartElement()) {
-									valueElement = event2.asStartElement();
-									if (isStartElement(event2, M_PROPERTIES)) {
+								// handle content in separate handlers
+								reader.next();
+								if (reader.isStartElement()) {
+									if (isStartElement(reader, M_PROPERTIES)) {
 										rt = new Entry();
-										this.parseDSAtomEntry(entitySet.getType(), reader, event2, entity);
+										this.parseDSAtomEntry(entitySet.getType(), reader, reader.getLocalName(), entity);
 									} else {
 										// TODO: Onkar : Set Basic content by implementing innerText method later
 										//BasicAtomEntry bae = new BasicAtomEntry();
@@ -387,12 +369,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 										rt = bae;
 									}
 								}
-								if (event2.isEndElement()
-										&& event2.asEndElement().getName()
-												.equals(contentElement.getName())) {
+								if (isEndElement(reader, ATOM_CONTENT)) {
 									break;
 								}
-							} catch (XMLStreamException e) {
+							} catch (Exception e) {
 								e.printStackTrace();
 							}
 						}
@@ -403,10 +383,9 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 						rt = e;
 					}
 				}
-			} catch (XMLStreamException e1) {
-				e1.printStackTrace();
-			}
-
+			} // end while
+		} catch (XMLStreamException e1) {
+			e1.printStackTrace();
 		}
 		throw new RuntimeException();
 	}
@@ -421,17 +400,17 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @return the link
 	 */
 	@SuppressWarnings("unchecked")
-	private Link parseAtomLink(XMLEventReader reader, StartElement linkElement,
+	private Link parseAtomLink(XMLStreamReader reader, String linkElement,
 			EntitySet entitySet, T entity) {
 
 		try {
 			Link rt = new Link();
-			rt.setRel(Relation.valueOf(getAttributeValueIfExists(linkElement,
+			rt.setRel(Relation.valueOf(getAttributeValueIfExists(reader,
 					"rel")));
-			rt.setType(MediaType.valueOf(getAttributeValueIfExists(linkElement,
+			rt.setType(MediaType.valueOf(getAttributeValueIfExists(reader,
 					"type")));
-			rt.setTitle(getAttributeValueIfExists(linkElement, "title"));
-			rt.setHref(new Reference(getAttributeValueIfExists(linkElement,
+			rt.setTitle(getAttributeValueIfExists(reader, "title"));
+			rt.setHref(new Reference(getAttributeValueIfExists(reader,
 					"href")));
 			//boolean inlineContent = false;
 
@@ -442,23 +421,21 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 			// 4. <m:inline><entry>..</m:inline></link> - inlined content 1 an item
 
 			while (reader.hasNext()) {
-				XMLEvent event;
-				event = reader.nextEvent();
+				reader.next();
 
-				if (event.isEndElement()
-						&& event.asEndElement().getName()
-								.equals(linkElement.getName())) {
+				if (reader.isEndElement()
+						&& reader.getLocalName().equals(linkElement)) {
 					break;
-				} else if (isStartElement(event, XmlFormatParser.M_INLINE)) {
+				} else if (isStartElement(reader, XmlFormatParser.M_INLINE)) {
 					//inlineContent = true; // may be null content.
-				} else if (isStartElement(event, ATOM_FEED)) {
+				} else if (isStartElement(reader, ATOM_FEED)) {
 					// rt.inlineFeed = parseFeed(reader, targetEntitySet);
-				} else if (isStartElement(event, ATOM_ENTRY)) { //handle the inline entity  
+				} else if (isStartElement(reader, ATOM_ENTRY)) { //handle the inline entity  
 					String propertyName = rt.getHref().getLastSegment();
 					// create a property object
 					Object o = ReflectUtils.getPropertyObject(entity, propertyName);
 					// populate the object 
-					this.parseEntry(reader, event.asStartElement(), entitySet, (T) o);
+					this.parseEntry(reader, reader.getLocalName(), entitySet, (T) o);
 					// set it back to parent entity
 					ReflectUtils.invokeSetter(entity, propertyName, o);
 				}
@@ -471,5 +448,4 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		}
 		return null;
 	}
-	
 }

@@ -1,6 +1,7 @@
 package org.restlet.ext.xml.format;
 
 import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
@@ -183,13 +184,13 @@ public class XmlFormatParser {
       return false;
     }
     QName name = new QName(event.asStartElement().getName().getNamespaceURI(), event.asStartElement().getName().getLocalPart());
-    return Enumerable.create(names).contains(name); //onkar
+    return Enumerable.create(names).contains(name);
 
   }
 
   protected static boolean isElement(XMLEvent event, QName... names) {
     QName name = new QName(event.asStartElement().getName().getNamespaceURI(), event.asStartElement().getName().getLocalPart());
-    return Enumerable.create(names).contains(name); //onkar
+    return Enumerable.create(names).contains(name);
 
   }
 
@@ -215,6 +216,34 @@ public class XmlFormatParser {
   protected static String getAttributeValueIfExists(StartElement element, QName attName) {
     Attribute rt = element.getAttributeByName(attName);
     return rt == null ? null : rt.getValue();
+  }
+  
+  protected static boolean isStartElement(XMLStreamReader reader, QName... names) {
+    if (!reader.isStartElement()) {
+      return false;
+    }
+    QName name = new QName(reader.getNamespaceURI(), reader.getLocalName());
+    return Enumerable.create(names).contains(name);
+
+  }
+  
+  protected static boolean isElement(XMLStreamReader reader, QName... names) {
+    QName name = new QName(reader.getNamespaceURI(), reader.getLocalName());
+    return Enumerable.create(names).contains(name);
+
+  }
+
+  protected static boolean isEndElement(XMLStreamReader reader, QName qname) {
+    if (!reader.isEndElement()) {
+      return false;
+    }
+    QName name = new QName(reader.getNamespaceURI(), reader.getLocalName());
+    return name.getNamespaceURI().equals(qname.getNamespaceURI())
+        && name.getLocalPart().equals(qname.getLocalPart());
+  }
+  
+  protected static String getAttributeValueIfExists(XMLStreamReader reader, String attName) {
+    return reader.getAttributeValue(null, attName);
   }
 
 }
