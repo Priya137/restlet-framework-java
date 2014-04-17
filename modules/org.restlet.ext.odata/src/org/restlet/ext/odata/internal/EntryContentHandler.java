@@ -344,11 +344,26 @@ public class EntryContentHandler<T> extends EntryReader {
                                 for (Field field : fields) {
                                     if (field.getName().equalsIgnoreCase(
                                             propertyPath.get(i))) {
-                                        o = field.getType().newInstance();
+                                    	if(field.getType().getName().equals("java.util.List")){
+                                            /*if (field.getGenericType() instanceof ParameterizedType) {
+                                        		ParameterizedType listType = (ParameterizedType) field.getGenericType();
+                                                Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+                                                Object newInstance = Class.forName(listClass.getName()).newInstance();
+                                                System.out.println(listClass.getName());
+                                                o = new ArrayList();
+                                            }else{*/
+                                                o = new ArrayList<Object>();
+                                            //}
+                                    		((List<Object>)o).add(sb.toString());
+                                    	}else{
+                                    		o = field.getType().newInstance();
+                                    	}
                                         break;
                                     }
                                 }
-                            }
+                            } else if(o instanceof List){
+	                    		((List<Object>)o).add(sb.toString());
+	                        }
                             ReflectUtils.invokeSetter(obj, propertyPath.get(i),
                                     o);
                             obj = o;

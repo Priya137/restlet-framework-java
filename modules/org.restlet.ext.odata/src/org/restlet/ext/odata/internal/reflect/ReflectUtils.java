@@ -368,6 +368,9 @@ public class ReflectUtils {
      */
     public static String normalize(String name) {
         String result = null;
+        if(name != null && name.toLowerCase().startsWith("list")){
+        	return name;
+        }
         if (name != null) {
             // Build the normalized name according to the java naming rules
             StringBuilder b = new StringBuilder();
