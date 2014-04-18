@@ -371,7 +371,7 @@ public class Query<T> implements Iterable<T> {
                 case TYPE_ENTITY_SET:
                 case TYPE_ENTITY:
                     Feed feed = new Feed();
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType.getName(), entityType, entityClass);
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType.getName(), entityType, entityClass, metadata);
                     ///AtomFeedCursorHandler<T> feedHandler = new AtomFeedCursorHandler<T>(entityType.getName(), entityType, entityClass);
                     feedHandler.setFeed(feed);
                     feedHandler.parse(result.getReader());

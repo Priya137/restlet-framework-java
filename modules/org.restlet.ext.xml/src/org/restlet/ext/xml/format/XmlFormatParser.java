@@ -153,6 +153,9 @@ public class XmlFormatParser {
   public static final QName ATOM_CATEGORY = new QName(NS_ATOM, "category");
   public static final QName ATOM_CONTENT = new QName(NS_ATOM, "content");
   public static final QName ATOM_LINK = new QName(NS_ATOM, "link");
+  public static final QName ATOM_AUTHOR = new QName(NS_ATOM, "author");
+  public static final QName ATOM_NAME = new QName(NS_ATOM, "name");
+  public static final QName ATOM_EMAIL = new QName(NS_ATOM, "email");
 
   public static final QName APP_WORKSPACE = new QName(NS_APP, "workspace");
   public static final QName APP_SERVICE = new QName(NS_APP, "service");

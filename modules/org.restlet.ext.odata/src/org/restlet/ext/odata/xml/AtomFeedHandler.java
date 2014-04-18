@@ -1,8 +1,11 @@
 package org.restlet.ext.odata.xml;
 
 import java.io.Reader;
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.xml.namespace.QName;
@@ -13,15 +16,19 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import org.restlet.data.Language;
 import org.restlet.data.MediaType;
-import org.restlet.data.Metadata;
 import org.restlet.data.Reference;
+import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
 import org.restlet.ext.atom.Feed;
 import org.restlet.ext.atom.Link;
+import org.restlet.ext.atom.Person;
 import org.restlet.ext.atom.Relation;
 import org.restlet.ext.odata.internal.edm.EntitySet;
 import org.restlet.ext.odata.internal.edm.EntityType;
+import org.restlet.ext.odata.internal.edm.Mapping;
+import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.xml.format.FormatParser;
@@ -120,6 +127,22 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		this.entityClass = entityClass;
 		this.entities = new ArrayList<T>();
 	}
+	
+	/**
+	 * Instantiates a new atom feed handler.
+	 *
+	 * @param entitySetName the entity set name
+	 * @param entityType the entity type
+	 * @param entityClass the entity class
+	 * @param metadata the metadata
+	 */
+	public AtomFeedHandler(String entitySetName, EntityType entityType, Class<?> entityClass, Metadata metadata) {
+		this.entitySetName = entitySetName;
+		this.entityType = entityType;
+		this.entityClass = entityClass;
+		this.entities = new ArrayList<T>();
+		this.metadata = metadata;
+	}
 
 	/* (non-Javadoc)
 	 * @see org.restlet.ext.xml.format.FormatParser#parse(java.io.Reader)
@@ -159,6 +182,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 								.getAttributeByName(new QName("href"))
 								.getValue());
 					}
+					parseAtomFeedLinks(event);
 				} else if (isEndElement(event, ATOM_FEED)) {
 					// return from a sub feed, if we went down the hierarchy
 					break;
@@ -178,6 +202,63 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	}
 
 	/**
+	 * Method to parse atom links.
+	 * @param event
+	 */
+	private void parseAtomFeedLinks(XMLEvent event) {
+		Link link = new Link();
+		link.setHref(new Reference(event.asStartElement()
+				.getAttributeByName(new QName("href"))
+				.getValue()));
+		link.setRel(Relation.valueOf(event.asStartElement()
+				.getAttributeByName(new QName("rel"))
+				.getValue()));
+		if(null != event.asStartElement()
+				.getAttributeByName(new QName("type"))){
+			String type = event.asStartElement()
+					.getAttributeByName(new QName("type"))
+					.getValue();
+			if (type != null && type.length() > 0) {
+				link.setType(new MediaType(type));
+			}
+		}
+		
+		if(null != event.asStartElement()
+				.getAttributeByName(new QName("hreflang"))){
+			link.setHrefLang(new Language(event.asStartElement()
+					.getAttributeByName(new QName("hreflang"))
+					.getValue()));
+		}
+		
+		if(null != event.asStartElement()
+				.getAttributeByName(new QName("title"))){
+			link.setTitle(event.asStartElement()
+					.getAttributeByName(new QName("title"))
+					.getValue());
+		}
+		
+		if(null != event.asStartElement()
+				.getAttributeByName(new QName("length"))){
+			final String attr = event.asStartElement()
+					.getAttributeByName(new QName("length"))
+					.getValue();
+			link.setLength((attr == null) ? -1L : Long.parseLong(attr));
+		}
+		
+		
+		// Glean the content
+		Content currentContent = new Content();
+		// Content available inline
+		//initiateInlineMixedContent();
+		link.setContent(currentContent);
+		
+		
+		getFeed().getLinks().add(link);
+	}
+	
+	
+
+	/**
 	 * Parses all properties of an entity.
 	 *
 	 * @param <T> the generic type
@@ -186,7 +267,6 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param entity the entity
 	 * @return the t
 	 */
-	@SuppressWarnings("unchecked")
 	public static <T> T parseProperties(
 			XMLEventReader reader, StartElement propertiesElement, T entity) {
 
@@ -206,36 +286,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 								.equals(NS_DATASERVICES)) {
 	
 					String name = event.asStartElement().getName().getLocalPart();
-					Attribute typeAttribute = event.asStartElement()
-							.getAttributeByName(M_TYPE);
-					Attribute nullAttribute = event.asStartElement()
-							.getAttributeByName(M_NULL);
-					boolean isNull = nullAttribute != null
-							&& "true".equals(nullAttribute.getValue());
-	
-
 					propertyName = ReflectUtils.normalize(name);
-					Object value = null;
-					if(typeAttribute == null){ // Simple String
-						value = reader.getElementText();;
-					}else if(typeAttribute.getValue().toLowerCase().startsWith("edm") && !isNull){ // EDM Type
-						value = TypeUtils.fromEdm(reader.getElementText(), typeAttribute.getValue());
-					}else if(typeAttribute.getValue().toLowerCase().startsWith("collection")){// collection type
-						Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-						// Delegate the collection handling to respective handler.
-						CollectionPropertyHandler.parse(reader, o, event.asStartElement(), entity);
-					} else if(!isNull){// complex type
-						// get or create the property instance
-						Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-						// populate the object
-						parseProperties(reader, event.asStartElement(), (T) o);
-						// set it back to parent entity
-						ReflectUtils.invokeSetter(entity, propertyName, o);
-					}
-					
-					if(value!= null){
-						ReflectUtils.invokeSetter(entity, propertyName, value);
-					}
+					parsePropertiesByType(reader, entity, propertyName, event);
 				}
 			}
 		} catch (Exception e) {
@@ -243,6 +295,46 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 			throw new RuntimeException();
 		}
 		return entity;
+	}
+
+	/** Method to parse properties of different types.
+	 * @param reader
+	 * @param entity
+	 * @param propertyName
+	 * @param event
+	 * @throws XMLStreamException
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	private static <T> void parsePropertiesByType(XMLEventReader reader, T entity, String propertyName, XMLEvent event)
+			throws XMLStreamException, Exception {
+		Object value = null;
+		Attribute typeAttribute = event.asStartElement()
+				.getAttributeByName(M_TYPE);
+		Attribute nullAttribute = event.asStartElement()
+				.getAttributeByName(M_NULL);
+		boolean isNull = nullAttribute != null
+				&& "true".equals(nullAttribute.getValue());
+		if(typeAttribute == null){ // Simple String
+			value = reader.getElementText();
+		}else if(typeAttribute.getValue().toLowerCase().startsWith("edm") && !isNull){ // EDM Type
+			value = TypeUtils.fromEdm(reader.getElementText(), typeAttribute.getValue());
+		}else if(typeAttribute.getValue().toLowerCase().startsWith("collection")){// collection type
+			Object o = ReflectUtils.getPropertyObject(entity, propertyName);
+			// Delegate the collection handling to respective handler.
+			CollectionPropertyHandler.parse(reader, o, event.asStartElement(), entity);
+		} else if(!isNull){// complex type
+			// get or create the property instance
+			Object o = ReflectUtils.getPropertyObject(entity, propertyName);
+			// populate the object
+			parseProperties(reader, event.asStartElement(), (T) o);
+			// set it back to parent entity
+			ReflectUtils.invokeSetter(entity, propertyName, o);
+		}
+		
+		if(value!= null){
+			ReflectUtils.invokeSetter(entity, propertyName, value);
+		}
 	}
 
 	/**
@@ -308,6 +400,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param entity the entity
 	 * @return the t
 	 */
+	@SuppressWarnings("rawtypes")
 	private T parseEntry(XMLEventReader reader,
 			StartElement entryElement, EntitySet entitySet, T entity) {
 
@@ -317,6 +410,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		String updated = null;
 		String contentType = null;
 		List<Link> atomLinks = new ArrayList<Link>();
+		Person p = null;
 		
 		Entry rt = null;
 
@@ -331,6 +425,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					rt.setTitle(title);
 					rt.setSummary(summary);
 					rt.setUpdated(Date.valueOf(updated.split("T")[0]));	
+					if(p!=null){
+						//set author details in the entity.
+						setDetailsOfPerson(entity, p, null); // third parameter would be null if we don't have contributor object.
+					}
 					return entity;
 				}
 	
@@ -360,6 +458,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					functions.put(function.getFQFunctionName(), metadata
 							.findFunctionImport(function.title,
 									entitySet.getType(), FunctionKind.Function));*/
+				} else if(isStartElement(event, ATOM_AUTHOR)){ 
+					// handle Author tag completely and create person object.
+					p = new Person();
+					parseAuthor(reader, p, event);
 				} else if (isStartElement(event, ATOM_CONTENT)) {
 					contentType = getAttributeValueIfExists(event.asStartElement(),
 							"type");
@@ -399,15 +501,181 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 						//e.setContent(innerText(reader, event.asStartElement()));
 						rt = e;
 					}
+				} else if(event.toString() != null && event.toString().isEmpty() && event.toString().trim().isEmpty()){
+					continue; 
+				} else { // Handle Custom feeds where some properties are outside content tag. ie. not in m:properties
+					if(event.isStartElement()){
+						List<Mapping> mappings = metadata.getMappings();	
+						Entry e = new Entry();
+						StartElement element = event.asStartElement();
+						String parentTag = element.getName().getLocalPart();
+						
+						// Iterate through inline attributes and set respective property for the entity.
+						// Eg: <cafe:contact title="Chief"/></entry>
+						String nsPrefix = element.getName().getPrefix();
+						for (Iterator iterator1 =  element.getAttributes(); iterator1.hasNext();) {
+							 Attribute attribute = (Attribute)iterator1.next();
+							 String attributeValue = getAttributeValueIfExists(element, attribute.getName());
+							 String attibuteTag = parentTag+"/@"+attribute.getName().getLocalPart();
+							 for (Iterator iterator = mappings.iterator(); iterator.hasNext();) {
+								Mapping mapping = (Mapping) iterator.next();
+								if(null != mapping.getNsPrefix() && mapping.getNsPrefix().equalsIgnoreCase(nsPrefix)){
+									if(attributeValue!= null & mapping.getValuePath().equalsIgnoreCase(attibuteTag)){
+										String propertyName = ReflectUtils.normalize(mapping.getPropertyPath());
+										ReflectUtils.invokeSetter(entity, propertyName, attributeValue);
+										break;
+									}
+								}
+							 }
+						}
+						
+						
+						StartElement valueElement = null;
+						String propertyName = null;
+						while(reader.hasNext()){
+							
+							XMLEvent event2;
+							
+							try {
+								// iterate all the sub-elements under parent tag with 
+								event2 = reader.nextEvent();
+								if (event2.isEndElement()
+										&& event2.asEndElement().getName()
+												.equals(element.getName())) {
+									break;
+								}
+								if (valueElement == null && event2.isStartElement()) {
+									valueElement = event2.asStartElement();
+									// Iterate through sub-paths and set respective property for the entity.
+									// Eg:<cafe:Company><cafe:Name>Cafe corp.</cafe:Name></cafe:Company>
+									String innerTag = parentTag+"/"+valueElement.getName().getLocalPart();
+									for (Iterator iterator = mappings.iterator(); iterator.hasNext();) {
+										Mapping mapping = (Mapping) iterator.next();
+										if(mapping.getValuePath().equalsIgnoreCase(innerTag)){
+											
+											//TODO: Abhijeet : Extract this into method and refer it in parseProperties
+											propertyName = ReflectUtils.normalize(mapping.getPropertyPath());
+											parsePropertiesByType(reader, entity, propertyName, event2);
+											break; // exit for loop if mapping is present and addressed
+											
+										}
+									}
+								}
+							}catch (XMLStreamException e1) {
+								e1.printStackTrace();
+							} catch (Exception e1) {
+								e1.printStackTrace();
+							}
+						}
+						rt = e;
+					}
 				}
 			} catch (XMLStreamException e1) {
+				e1.printStackTrace();
+			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
 
 		}
 		throw new RuntimeException();
 	}
+
+	/**
+	 * @param reader
+	 * @param p
+	 * @param event
+	 */
+	private void parseAuthor(XMLEventReader reader, Person p, XMLEvent event) {
+		StartElement contentElement = event.asStartElement();
+		StartElement valueElement = null;
+		while (reader.hasNext()) {
+			// handle content in separate handlers
+			XMLEvent event2;
+			try {
+				event2 = reader.nextEvent();
+				if (valueElement == null && event2.isStartElement()) {
+					valueElement = event2.asStartElement();
+					if (isStartElement(event2, ATOM_NAME)) {
+						String name = reader.getElementText();
+						if(!name.isEmpty()){
+							p.setName(name);
+						}
+					}else if (isStartElement(event2, ATOM_EMAIL)) {
+						String email = reader.getElementText();
+						if(!email.isEmpty()){
+							p.setEmail(email);
+						}
+					}
+				}
+				if (event2.isEndElement()
+						&& event2.asEndElement().getName()
+								.equals(contentElement.getName())) {
+					break;
+				}
+			}catch (XMLStreamException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	
+	/**
+	 * Method to set atom mappings to corresponding entity.
+	 * @param entity
+	 * @param author
+	 * @param contributor
+	 */
+	private void setDetailsOfPerson(T entity, Person author, Person contributor) {
+		 // Handle Atom mapped values.
+        for (Mapping m : metadata.getMappings()) {
+            if (entityType != null && entityType.equals(m.getType())
+                    && m.getNsUri() == null && m.getNsPrefix() == null) {
+            	
+            	Object value = null;
+                if ("SyndicationAuthorEmail".equals(m.getValuePath())) {
+                    value = (author != null) ? author.getEmail() : null;
+                } else if ("SyndicationAuthorName".equals(m.getValuePath())) {
+                    value = (author != null) ? author.getName() : null;
+                } else if ("SyndicationAuthorUri".equals(m.getValuePath())) {
+                    value = (author != null) ? author.getUri().toString()
+                            : null;
+                } else if ("SyndicationContributorEmail".equals(m
+                        .getValuePath())) {
+                    value = (contributor != null) ? contributor.getEmail()
+                            : null;
+                } else if ("SyndicationContributorName"
+                        .equals(m.getValuePath())) {
+                    value = (contributor != null) ? contributor.getName()
+                            : null;
+                } else if ("SyndicationContributorUri".equals(m.getValuePath())) {
+                    value = (contributor != null) ? contributor.getUri()
+                            .toString() : null;
+                } /*else if ("SyndicationPublished".equals(m.getValuePath())) {
+                    value = entry.getPublished();
+                } else if ("SyndicationRights".equals(m.getValuePath())) {
+                    value = (entry.getRights() != null) ? entry.getRights()
+                            .getContent() : null;
+                } else if ("SyndicationSummary".equals(m.getValuePath())) {
+                    value = entry.getSummary();
+                } else if ("SyndicationTitle".equals(m.getValuePath())) {
+                    value = (entry.getTitle() != null) ? entry.getTitle()
+                            .getContent() : null;
+                } else if ("SyndicationUpdated".equals(m.getValuePath())) {
+                    value = entry.getUpdated();
+                }*/
+                
+                try {
+                    if (value != null) {
+                        ReflectUtils.invokeSetter(entity, m.getPropertyPath(),
+                                value);
+                    }
+                } catch (Exception e) {
+                  e.printStackTrace();
+                }
+            }
+        }
+		
+	}
+
 	/**
 	 * Parses the atom link.
 	 *
@@ -417,7 +685,6 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param entity the entity
 	 * @return the link
 	 */
-	@SuppressWarnings("unchecked")
 	private Link parseAtomLink(XMLEventReader reader, StartElement linkElement,
 			EntitySet entitySet, T entity) {
 
@@ -449,15 +716,26 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				} else if (isStartElement(event, XmlFormatParser.M_INLINE)) {
 					//inlineContent = true; // may be null content.
 				} else if (isStartElement(event, ATOM_FEED)) {
-					// rt.inlineFeed = parseFeed(reader, targetEntitySet);
+					//skip all tags until we encounter first entry element to exclude link and other tags.
+					// Fix for edit link tag to prevent pre-matured exit of parent link iteration. 
+					while( reader.hasNext()){
+						event = reader.nextEvent();
+						if(isStartElement(event,ATOM_ENTRY)){
+							String propertyName = rt.getHref().getLastSegment();
+							// create a property object
+							Object o = ReflectUtils.getPropertyObject(entity, propertyName);
+							parseInlineEntities(reader, entitySet, entity, event, propertyName, o);
+							// This break is added to not handle additional inline entities here. Those entries shall be handled in next else-if block.
+							break; 
+						} else if(event.isEndElement() && event.asEndElement().getName().equals(ATOM_FEED.getLocalPart())){
+							break;
+						}
+					}
 				} else if (isStartElement(event, ATOM_ENTRY)) { //handle the inline entity  
 					String propertyName = rt.getHref().getLastSegment();
 					// create a property object
 					Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-					// populate the object 
-					this.parseEntry(reader, event.asStartElement(), entitySet, (T) o);
-					// set it back to parent entity
-					ReflectUtils.invokeSetter(entity, propertyName, o);
+					parseInlineEntities(reader, entitySet, entity, event, propertyName, o);
 				}
 			}
 			return rt;
@@ -467,6 +745,59 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	/**
+	 * Method to parse Inline entities.
+	 * @param reader
+	 * @param entitySet
+	 * @param entity
+	 * @param event
+	 * @param propertyName
+	 * @param o
+	 * @throws NoSuchFieldException
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws Exception
+	 */
+	@SuppressWarnings(value = {"unchecked", "rawtypes" })
+	private void parseInlineEntities(XMLEventReader reader, EntitySet entitySet, T entity, XMLEvent event,
+			String propertyName, Object o) {
+		try {
+			if (o instanceof List) { // Collection of complex i.e. one to many association
+				Field field = entity.getClass().getDeclaredField(ReflectUtils.normalize(propertyName));
+				// String currentMType = startElement.getAttributeByName(M_TYPE).getValue();
+				// get the parameterize type using reflection
+				if (field.getGenericType() instanceof ParameterizedType) {
+					// determine what type of collection it is
+					ParameterizedType listType = (ParameterizedType) field.getGenericType();
+					Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+					// Create new Item Instance
+					Object obj;
+					obj = listClass.newInstance();
+
+					// create a new instance and populate the properties
+					this.parseEntry(reader, event.asStartElement(), entitySet, (T) obj);
+					((List) o).add(obj);
+				}
+
+			} else { // complex object i.e. embedded object in parent entity
+				// populate the object
+				this.parseEntry(reader, event.asStartElement(), entitySet, (T) o);
+				// set it back to parent entity
+				ReflectUtils.invokeSetter(entity, propertyName, o);
+			}
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 }

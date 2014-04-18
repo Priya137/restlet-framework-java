@@ -71,7 +71,7 @@ public <#if type.abstractType>abstract </#if>class ${className} {
   </#if>
 </#list>
 <#list type.associations?sort_by("name") as association>
-    private <#if association.toRole.toMany>List<${association.toRole.type.className}><#else>${association.toRole.type.className}</#if> ${association.normalizedName};
+    private <#if association.toRole.toMany> List<${association.toRole.type.className}> <#else> ${association.toRole.type.className} </#if> ${association.normalizedName} <#if association.toRole.toMany> = new ArrayList<${association.toRole.type.className}>()</#if>;
 </#list>
 <#if type.blob>
     /** The reference of the underlying blob representation. */
