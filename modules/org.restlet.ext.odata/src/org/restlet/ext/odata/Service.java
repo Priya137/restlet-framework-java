@@ -1159,7 +1159,7 @@ public class Service {
                      * @throws SAXException the SAX exception
                      */
                     private void writeCollectionProperty(XmlWriter writer, Object entity, Object value, Property prop, AttributesImpl nullAttrs) throws SAXException {
-						if (value instanceof List) {							
+						if (value instanceof List) {
 							try {
 								Field field = entity.getClass().getDeclaredField(
 										prop.getName());
@@ -1170,32 +1170,50 @@ public class Service {
 									Class<?> listClass = (Class<?>) listType
 											.getActualTypeArguments()[0]; // get the parameterized class 
 									String mType = null;
+									boolean isPrimitiveCollection = false;
+									AttributesImpl typeAttr = new AttributesImpl();
 									if(listClass.getName().toLowerCase().startsWith("java")){ // collection of primitives
 										mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
+										isPrimitiveCollection = true;
 									}else{	// collection of complex
 										String[] className = listClass.getName().split("\\.");
 										mType = "Collection("+ className[0].toUpperCase() + "." + className[1] + ")";
 									}
-									AttributesImpl typeAttr = new AttributesImpl();
+									List<?> obj = (List<?>) value;
+									// write collection property tag 
 									typeAttr.addAttribute(
 										WCF_DATASERVICES_METADATA_NAMESPACE,
 										"type", "type", "string", mType);
+									if(obj.size() == 0){
+										typeAttr.addAttribute(
+			                                    WCF_DATASERVICES_METADATA_NAMESPACE,
+			                                    "null", null, "boolean", "true");
+									}
 									writer.startElement(
 										WCF_DATASERVICES_NAMESPACE,
 										prop.getName(), prop.getName(),
 										typeAttr);
-									
-									List obj = (List) value;
+									// write element tags
 									for (Object object : obj) {
-										if(object.toString().length()>0){
-											writer.dataElement(WCF_DATASERVICES_NAMESPACE, XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), object.toString());
-										}else{
-											writer.emptyElement(
+										if(isPrimitiveCollection){
+											if(object.toString().length()>0){
+												writer.dataElement(WCF_DATASERVICES_NAMESPACE, XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), object.toString());
+											}else{
+												writer.emptyElement(
+														WCF_DATASERVICES_NAMESPACE,
+														XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(),
+														nullAttrs);
+											}
+										}else{ // complex collection
+											writer.startElement(
 													WCF_DATASERVICES_NAMESPACE,
-													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(),
-													nullAttrs);
+													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
+											// write complex property under <element></element>
+											write(writer, object, nullAttrs);
+											writer.endElement(
+													WCF_DATASERVICES_NAMESPACE,
+													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
 										}
-										
 									}
 								}
 							} catch (SecurityException e) {
