@@ -33,6 +33,8 @@
 
 package org.restlet.ext.odata;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +53,7 @@ import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.FeedContentHandler;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
+import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
@@ -378,6 +381,10 @@ public class Query<T> implements Iterable<T> {
                     this.setFeed(feed);
                     this.count = -1;// no need to set as we send $count request later
                     this.entities = feedHandler.getEntities();
+					// Check for Stream column.
+					if (metadata.getEntityType(entityClass).getBlobValueRefProperty() != null) {
+						resource = setStreamingProperty(resource, metadata);
+					}
                     break;
                 case TYPE_UNKNOWN:
                     // Guess the type of query based on the returned
@@ -422,6 +429,40 @@ public class Query<T> implements Iterable<T> {
             setExecuted(true);
         }
     }
+
+	/**
+	 * @param targetUri
+	 * @param resource
+	 * @param metadata
+	 * @param entityClass
+	 * @return
+	 * @throws Exception
+	 * @throws IOException
+	 */
+	private ClientResource setStreamingProperty(ClientResource resource, Metadata metadata) {
+		Field[] declaredFields = entityClass.getDeclaredFields();
+		String fieldName = "";
+		for (Field field : declaredFields) {
+			String val = field.getType().getCanonicalName();
+			if (val.contains("InputStream")) {
+				fieldName = field.getName();
+				break;
+			}
+		}
+		for (int i = 0; i < this.feed.getEntries().size(); i++) {
+			String targetUri = this.feed.getEntries().get(i).getId() + "/" + "$value";
+			resource = service.createResource(new Reference(targetUri));
+			Representation result = resource.get(MediaType.APPLICATION_ATOM);
+			try {
+				ReflectUtils.invokeSetter(this.entities.get(i), fieldName, result.getStream());
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return resource;
+	}
 
     /**
      * Creates a new Query<T> with the $expand option set in the URI generated

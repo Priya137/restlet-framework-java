@@ -35,6 +35,7 @@ package org.restlet.ext.odata.internal.edm;
 
 import java.beans.PropertyEditor;
 import java.beans.PropertyEditorManager;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -608,6 +609,8 @@ public class TypeUtils {
             result = String.class;
         } else if (edmTypeName.startsWith("List")) {
             result = List.class;
+		} else if (edmTypeName.endsWith("Stream")) {
+			result = InputStream.class;
         }
 
         return result;
@@ -636,6 +639,8 @@ public class TypeUtils {
             result = "Edm.Int64";
         } else if (edmTypeName.endsWith("string")) {
             result = "Edm.String";
+		} else if (edmTypeName.endsWith("InputStream".toLowerCase())) {
+			result = "Edm.Stream";
         }
 
         return result;
@@ -678,6 +683,8 @@ public class TypeUtils {
             result = "Byte";
         } else if (edmTypeName.endsWith("String")) {
             result = "String";
+		} else if (edmTypeName.endsWith("Stream")) {
+			result = "InputStream";
         }
 
         return result;

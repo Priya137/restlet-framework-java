@@ -409,10 +409,9 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		String summary = null;
 		String updated = null;
 		String contentType = null;
-		List<Link> atomLinks = new ArrayList<Link>();
 		Person p = null;
 		
-		Entry rt = null;
+		Entry rt = new Entry();
 
 		while (reader.hasNext()) {
 			try {
@@ -425,6 +424,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					rt.setTitle(title);
 					rt.setSummary(summary);
 					rt.setUpdated(Date.valueOf(updated.split("T")[0]));	
+					this.getFeed().getEntries().add(rt);
 					if(p!=null){
 						//set author details in the entity.
 						setDetailsOfPerson(entity, p, null); // third parameter would be null if we don't have contributor object.
@@ -443,7 +443,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				} else if (isStartElement(event, ATOM_LINK)) {
 					Link link = parseAtomLink(reader, event.asStartElement(),
 							entitySet, entity);
-					atomLinks.add(link);
+					rt.getLinks().add(link);
 				} else if (isStartElement(event, M_PROPERTIES)) {
 					parseDSAtomEntry(entitySet.getType(), reader, event, entity);
 				/*} else if (isStartElement(event, M_ACTION)) {
@@ -476,7 +476,6 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 								if (valueElement == null && event2.isStartElement()) {
 									valueElement = event2.asStartElement();
 									if (isStartElement(event2, M_PROPERTIES)) {
-										rt = new Entry();
 										this.parseDSAtomEntry(entitySet.getType(), reader, event2, entity);
 									} else {
 										// TODO: Onkar : Set Basic content by implementing innerText method later
