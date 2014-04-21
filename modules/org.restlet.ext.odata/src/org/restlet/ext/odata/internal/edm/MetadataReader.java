@@ -561,10 +561,18 @@ public class MetadataReader extends DefaultHandler {
             if (type.toLowerCase().startsWith("edm.")) {
                 property = new Property(attrs.getValue("Name"));
                 property.setType(new Type(attrs.getValue("Type")));
+                property.setDefaultValue(attrs.getValue("Default"));
+            } else if (type.toLowerCase().startsWith("collection")) { 
+            	ComplexProperty p = new ComplexProperty(attrs.getValue("Name"));
+            	String edmType = TypeUtils.getClassType(type);
+                p.setComplexType(new ComplexType("List<"+edmType+">"));
+                property = p;
+                property.setDefaultValue("new ArrayList<"+edmType+">()");
             } else {
                 ComplexProperty p = new ComplexProperty(attrs.getValue("Name"));
                 p.setComplexType(new ComplexType(attrs.getValue("Type")));
                 property = p;
+                property.setDefaultValue(attrs.getValue("Default"));
             }
 
             property.setDefaultValue(attrs.getValue("Default"));

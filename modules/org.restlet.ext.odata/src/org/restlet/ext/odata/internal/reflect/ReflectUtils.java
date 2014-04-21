@@ -156,7 +156,6 @@ public class ReflectUtils {
     public static Object invokeGetter(Object entity, String propertyName)
             throws Exception {
         Object result = null;
-
         if (propertyName != null && entity != null) {
             propertyName = propertyName.replaceAll("/", ".");
             Object o = entity;
@@ -253,6 +252,7 @@ public class ReflectUtils {
                     if ((method.getParameterTypes() != null)
                             && (method.getParameterTypes().length == 1)) {
                         setter = method;
+                        break;
                     }
                 }
             }
@@ -368,6 +368,9 @@ public class ReflectUtils {
      */
     public static String normalize(String name) {
         String result = null;
+        if(name != null && name.toLowerCase().startsWith("list")){
+        	return name;
+        }
         if (name != null) {
             // Build the normalized name according to the java naming rules
             StringBuilder b = new StringBuilder();
@@ -524,4 +527,32 @@ public class ReflectUtils {
 
         invokeSetter(entity, propertyName, propertyValue, null);
     }
+    
+	/**
+	 * Gets the property object.
+	 * Creates the instance of property if not already created.
+	 *
+	 * @param <T> the generic type
+	 * @param entity the entity
+	 * @param propertyName the property name
+	 * @return the property object
+	 */
+	public static <T> Object getPropertyObject(T entity, String propertyName) {
+		Object o = null;
+		try {
+			o = ReflectUtils.invokeGetter(entity, propertyName);
+			Field[] fields = entity.getClass().getDeclaredFields();
+			if (o == null) {
+				for (Field field : fields) {
+					if (field.getName().equalsIgnoreCase(propertyName)) {
+						o = field.getType().newInstance();
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return o;
+	}
 }

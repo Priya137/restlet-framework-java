@@ -33,6 +33,8 @@
 
 package org.restlet.ext.odata;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +53,8 @@ import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.FeedContentHandler;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
+import org.restlet.ext.odata.internal.reflect.ReflectUtils;
+import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -368,23 +372,19 @@ public class Query<T> implements Iterable<T> {
                 // Guess the type of query based on the URI structure
                 switch (guessType(targetUri)) {
                 case TYPE_ENTITY_SET:
-                    FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
-                            entityClass, entityType, metadata, getLogger());
-                    setFeed(new Feed(result, feedContentHandler));
-                    this.count = feedContentHandler.getCount();
-                    this.entities = feedContentHandler.getEntities();
-                    break;
                 case TYPE_ENTITY:
-                    EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
-                            entityClass, entityType, metadata, getLogger());
                     Feed feed = new Feed();
-                    feed.getEntries().add(
-                            new Entry(result, entryContentHandler));
-                    setFeed(feed);
-                    entities = new ArrayList<T>();
-                    if (entryContentHandler.getEntity() != null) {
-                        entities.add(entryContentHandler.getEntity());
-                    }
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType.getName(), entityType, entityClass, metadata);
+                    ///AtomFeedCursorHandler<T> feedHandler = new AtomFeedCursorHandler<T>(entityType.getName(), entityType, entityClass);
+                    feedHandler.setFeed(feed);
+                    feedHandler.parse(result.getReader());
+                    this.setFeed(feed);
+                    this.count = -1;// no need to set as we send $count request later
+                    this.entities = feedHandler.getEntities();
+					// Check for Stream column.
+					if (metadata.getEntityType(entityClass).getBlobValueRefProperty() != null) {
+						resource = setStreamingProperty(resource, metadata);
+					}
                     break;
                 case TYPE_UNKNOWN:
                     // Guess the type of query based on the returned
@@ -394,13 +394,13 @@ public class Query<T> implements Iterable<T> {
                     String string = rep.getText().substring(0,
                             Math.min(100, rep.getText().length()));
                     if (string.contains("<feed")) {
-                        feedContentHandler = new FeedContentHandler<T>(
+                    	FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
                                 entityClass, entityType, metadata, getLogger());
                         setFeed(new Feed(rep, feedContentHandler));
                         this.count = feedContentHandler.getCount();
                         this.entities = feedContentHandler.getEntities();
                     } else if (string.contains("<entry")) {
-                        entryContentHandler = new EntryContentHandler<T>(
+                    	EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
                                 entityClass, entityType, metadata, getLogger());
                         feed = new Feed();
                         feed.getEntries().add(
@@ -429,6 +429,40 @@ public class Query<T> implements Iterable<T> {
             setExecuted(true);
         }
     }
+
+	/**
+	 * @param targetUri
+	 * @param resource
+	 * @param metadata
+	 * @param entityClass
+	 * @return
+	 * @throws Exception
+	 * @throws IOException
+	 */
+	private ClientResource setStreamingProperty(ClientResource resource, Metadata metadata) {
+		Field[] declaredFields = entityClass.getDeclaredFields();
+		String fieldName = "";
+		for (Field field : declaredFields) {
+			String val = field.getType().getCanonicalName();
+			if (val.contains("InputStream")) {
+				fieldName = field.getName();
+				break;
+			}
+		}
+		for (int i = 0; i < this.feed.getEntries().size(); i++) {
+			String targetUri = this.feed.getEntries().get(i).getId() + "/" + "$value";
+			resource = service.createResource(new Reference(targetUri));
+			Representation result = resource.get(MediaType.APPLICATION_ATOM);
+			try {
+				ReflectUtils.invokeSetter(this.entities.get(i), fieldName, result.getStream());
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return resource;
+	}
 
     /**
      * Creates a new Query<T> with the $expand option set in the URI generated

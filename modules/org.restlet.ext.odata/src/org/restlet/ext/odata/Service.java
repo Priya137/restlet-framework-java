@@ -37,6 +37,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -76,6 +77,7 @@ import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.xml.DomRepresentation;
 import org.restlet.ext.xml.SaxRepresentation;
 import org.restlet.ext.xml.XmlWriter;
+import org.restlet.ext.xml.format.XmlFormatParser;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -1145,6 +1147,82 @@ public class Service {
                             }
                         }
                     }
+                    
+                    /**
+                     * Write collection property element.
+                     *
+                     * @param writer the writer
+                     * @param entity the entity
+                     * @param value the value
+                     * @param prop the prop
+                     * @param nullAttrs the null attrs
+                     * @throws SAXException the SAX exception
+                     */
+                    private void writeCollectionProperty(XmlWriter writer, Object entity, Object value, Property prop, AttributesImpl nullAttrs) throws SAXException {
+						if (value instanceof List) {
+							try {
+								Field field = entity.getClass().getDeclaredField(
+										prop.getName());
+								if (field.getGenericType() instanceof ParameterizedType) {
+									// determine what type of collection it is
+									ParameterizedType listType = (ParameterizedType) field
+											.getGenericType();
+									Class<?> listClass = (Class<?>) listType
+											.getActualTypeArguments()[0]; // get the parameterized class 
+									String mType = null;
+									boolean isPrimitiveCollection = false;
+									AttributesImpl typeAttr = new AttributesImpl();
+									if(listClass.getName().toLowerCase().startsWith("java")){ // collection of primitives
+										mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
+										isPrimitiveCollection = true;
+									}else{	// collection of complex
+										String[] className = listClass.getName().split("\\.");
+										mType = "Collection("+ className[0].toUpperCase() + "." + className[1] + ")";
+									}
+									List<?> obj = (List<?>) value;
+									// write collection property tag 
+									typeAttr.addAttribute(
+										WCF_DATASERVICES_METADATA_NAMESPACE,
+										"type", "type", "string", mType);
+									if(obj.size() == 0){
+										typeAttr.addAttribute(
+			                                    WCF_DATASERVICES_METADATA_NAMESPACE,
+			                                    "null", null, "boolean", "true");
+									}
+									writer.startElement(
+										WCF_DATASERVICES_NAMESPACE,
+										prop.getName(), prop.getName(),
+										typeAttr);
+									// write element tags
+									for (Object object : obj) {
+										if(isPrimitiveCollection){
+											if(object.toString().length()>0){
+												writer.dataElement(WCF_DATASERVICES_NAMESPACE, XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), object.toString());
+											}else{
+												writer.emptyElement(
+														WCF_DATASERVICES_NAMESPACE,
+														XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(),
+														nullAttrs);
+											}
+										}else{ // complex collection
+											writer.startElement(
+													WCF_DATASERVICES_NAMESPACE,
+													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
+											// write complex property under <element></element>
+											write(writer, object, nullAttrs);
+											writer.endElement(
+													WCF_DATASERVICES_NAMESPACE,
+													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
+										}
+									}
+								}
+							} catch (SecurityException e) {
+								e.printStackTrace();
+							} catch (NoSuchFieldException e) {
+								e.printStackTrace();
+							}
+						}
+                    }
 
                     private void writeProperty(XmlWriter writer, Object entity,
                             Property prop, String getter,
@@ -1153,47 +1231,71 @@ public class Service {
                                 .getDeclaredMethods()) {
                             if (method.getReturnType() != null
                                     && getter.equals(method.getName())
-                                    && method.getParameterTypes().length == 0) {
-                                Object value = null;
+									&& method.getParameterTypes().length == 0) {
+								Object value = null;
 
-                                try {
-                                    value = method.invoke(entity,
-                                            (Object[]) null);
-                                } catch (Exception e) {
-                                }
+								try {
+									value = method.invoke(entity,
+											(Object[]) null);
+								} catch (Exception e) {
+								}
 
-                                if (value != null) {
-                                    writer.startElement(
-                                            WCF_DATASERVICES_NAMESPACE,
-                                            prop.getName());
+								if (value != null) {
+									AttributesImpl typeAttr = new AttributesImpl();
+									if (prop instanceof ComplexProperty) { // if this is collection or complex type
+										if (value instanceof List) { // collection
+											writeCollectionProperty(writer,
+													entity, value, prop, nullAttrs);
+										} else { // complex type
+											String packageName = entity.getClass().getName().split("\\.")[0];
+											// prefix the namespace for m:type 
+											packageName = packageName.toUpperCase() + "." ;
+											typeAttr.addAttribute(
+													WCF_DATASERVICES_METADATA_NAMESPACE,
+													"type", "type", "string",packageName + 
+													((ComplexProperty) prop)
+															.getComplexType()
+															.getName());
+											writer.startElement(
+													WCF_DATASERVICES_NAMESPACE,
+													prop.getName(), prop.getName(),
+													typeAttr);
+											// write data
+											write(writer, value, nullAttrs);
+										}
+									} else {
+										typeAttr.addAttribute(
+												WCF_DATASERVICES_METADATA_NAMESPACE,
+												"type", "type", "string", prop
+														.getType().getName());
+										writer.startElement(
+												WCF_DATASERVICES_NAMESPACE,
+												prop.getName(), prop.getName(),
+												typeAttr);
+										writer.characters(TypeUtils.toEdm(
+												value, prop.getType()));
+									}
 
-                                    if (prop instanceof ComplexProperty) {
-                                        write(writer, value, nullAttrs);
-                                    } else {
-                                        writer.characters(TypeUtils.toEdm(
-                                                value, prop.getType()));
-                                    }
-
-                                    writer.endElement(
-                                            WCF_DATASERVICES_NAMESPACE,
-                                            prop.getName());
-                                } else {
-                                    if (prop.isNullable()) {
-                                        writer.emptyElement(
-                                                WCF_DATASERVICES_NAMESPACE,
-                                                prop.getName(), prop.getName(),
-                                                nullAttrs);
-                                    } else {
-                                        getLogger().warning(
-                                                "The following property has a null value but is not marked as nullable: "
-                                                        + prop.getName());
-                                        writer.emptyElement(
-                                                WCF_DATASERVICES_NAMESPACE,
-                                                prop.getName());
-                                    }
-                                }
-                                break;
-                            }
+									writer.endElement(
+											WCF_DATASERVICES_NAMESPACE,
+											prop.getName());
+								} else {
+									if (prop.isNullable()) {
+										writer.emptyElement(
+												WCF_DATASERVICES_NAMESPACE,
+												prop.getName(), prop.getName(),
+												nullAttrs);
+									} else {
+										getLogger().warning(
+												"The following property has a null value but is not marked as nullable: "
+														+ prop.getName());
+										writer.emptyElement(
+												WCF_DATASERVICES_NAMESPACE,
+												prop.getName());
+									}
+								}
+								break;
+							}
                         }
                     }
                 };
