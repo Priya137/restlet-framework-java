@@ -161,7 +161,11 @@ public class HeaderUtils {
                 addHeader(HeaderConstants.HEADER_CONTENT_LOCATION, entity
                         .getLocationRef().getTargetRef().toString(), headers);
             }
-
+            
+			if (entity.isX_http_header()) {
+				addHeader(HeaderConstants.HEADER_X_HTTP_METHOD, "MERGE", headers);
+			}
+			
             // [ifndef gwt]
             if (entity.getDigest() != null
                     && Digest.ALGORITHM_MD5.equals(entity.getDigest()
@@ -206,6 +210,11 @@ public class HeaderUtils {
                         DispositionWriter.write(entity.getDisposition()),
                         headers);
             }
+            
+			if (entity.getSlugHeader() != null) {
+				addHeader(HeaderConstants.HEADER_SLUG,
+						entity.getSlugHeader(), headers);
+			}
         }
     }
 

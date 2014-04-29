@@ -35,6 +35,7 @@ package org.restlet.ext.odata;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -62,8 +63,6 @@ import org.restlet.engine.header.HeaderReader;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
 import org.restlet.ext.atom.Feed;
-import org.restlet.ext.atom.Link;
-import org.restlet.ext.atom.Relation;
 import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
 import org.restlet.ext.odata.internal.edm.ComplexProperty;
@@ -131,6 +130,8 @@ public class Service {
 
     /** The internal logger. */
     private Logger logger;
+    
+    private String slug = "";
 
     /**
      * The maximum version of the OData protocol extensions the client can
@@ -208,41 +209,94 @@ public class Service {
      *            The entity to put.
      * @throws Exception
      */
-    public void addEntity(String entitySetName, Object entity) throws Exception {
-        if (entity != null) {
-            Entry entry = toEntry(entity);
+	public void addEntity(String entitySetName, Object entity) throws Exception {
+		if (entity != null) {
+			Metadata metadata = (Metadata) getMetadata();
+			EntityType type = metadata.getEntityType(entity.getClass());
+			ClientResource resource = createResource(entitySetName);
+			Representation rep = null;
+			try {
+				if (type.isBlob()) { // entity type is set to BLOB if hasStream property of an entity is true.
+					
+					InputStream inputStream = this.handleStreamingWithSlug(entity, type);
+					if (getMetadata() == null) { 
+						throw new Exception("Can't add entity to this entity set " + resource.getReference()
+								+ " due to the lack of the service's metadata.");
+					}
+					//post the inputstream with slug header.
+					rep = resource.post(inputStream, slug);
+					EntryContentHandler<?> entryContentHandler = new EntryContentHandler<Object>(entity.getClass(),
+							(Metadata) getMetadata(), getLogger());
+					Entry currentEntity = new Entry(rep, entryContentHandler);
+					this.merge(entity, currentEntity.getId()); //merge the remaining properties using merge request.
+				} else {
+					if (getMetadata() == null) {
+						throw new Exception("Can't add entity to this entity set " + resource.getReference()
+								+ " due to the lack of the service's metadata.");
+					}
+					Entry entry = toEntry(entity);
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					entry.write(baos);
+					baos.flush();
+					StringRepresentation r = new StringRepresentation(baos.toString(), MediaType.APPLICATION_ATOM);
+					rep = resource.post(r);
+					EntryContentHandler<?> entryContentHandler = new EntryContentHandler<Object>(entity.getClass(),
+							(Metadata) getMetadata(), getLogger());
+					Feed feed = new Feed();
+					feed.getEntries().add(new Entry(rep, entryContentHandler));
+				}
+			} catch (ResourceException re) {
+				throw new ResourceException(re.getStatus(), "Can't add entity to this entity set "
+						+ resource.getReference());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}finally {
+				this.latestRequest = resource.getRequest();
+				this.latestResponse = resource.getResponse();
+			}
+		}
+	}
 
-            ClientResource resource = createResource(entitySetName);
-            if (getMetadata() == null) {
-                throw new Exception("Can't add entity to this entity set "
-                        + resource.getReference()
-                        + " due to the lack of the service's metadata.");
-            }
 
-            try {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                entry.write(baos);
-                baos.flush();
-                StringRepresentation r = new StringRepresentation(
-                        baos.toString(), MediaType.APPLICATION_ATOM);
-                Representation rep = resource.post(r);
-                EntryContentHandler<?> entryContentHandler = new EntryContentHandler<Object>(
-                        entity.getClass(), (Metadata) getMetadata(),
-                        getLogger());
-                Feed feed = new Feed();
-                feed.getEntries().add(new Entry(rep, entryContentHandler));
-            } catch (ResourceException re) {
-                throw new ResourceException(re.getStatus(),
-                        "Can't add entity to this entity set "
-                                + resource.getReference());
-            } finally {
-                this.latestRequest = resource.getRequest();
-                this.latestResponse = resource.getResponse();
-            }
-        }
-    }
+	/**
+	 * Method to handle Streaming data for create/update operation.
+	 * It also creates slug header which we need for creating request headers for MLE.
+	 * @param entity
+	 * @param type
+	 * @return
+	 * @throws Exception
+	 */
+    private InputStream handleStreamingWithSlug(Object entity, EntityType type) throws Exception {
+    	List<Property> properties = type.getProperties();
+		Iterator<Property> iterator = properties.iterator();
+		InputStream inputStream = null;
+		slug="";
+		// Create the SLUG header for Streaming.
+		// As streaming entity requires mandatory fields to be passed as slug header.
+		// Request body contains only stream data. Slug header contains mandatory fields like PK.
+		while (iterator.hasNext()) {
+			Property prop = iterator.next();
+			if (!prop.isNullable()) {
+				Object propertyObject = ReflectUtils.getPropertyObject(entity, prop.getNormalizedName());
+				String propName = prop.getName() + "=" + propertyObject.toString();
+				if (slug.isEmpty()) {
+					slug = propName;
+				} else {
+					slug = slug + "," + propName;
+				}
+			} else {
+				if (prop.getType().getName().contains("Stream")) { // find the streaming property from entity and assign stream value to it.  
+					Object propertyObject = ReflectUtils.invokeGetter(entity, prop.getNormalizedName());
+					if(null!= propertyObject){
+						inputStream = (InputStream) propertyObject;									
+					}
+				}
+			}
+		}
+		return inputStream;
+	}
 
-    /**
+	/**
      * Adds an association between the source and the target entity via the
      * given property name.
      * 
@@ -1300,37 +1354,13 @@ public class Service {
                     }
                 };
                 r.setNamespaceAware(true);
+				result = new Entry();
+				Content content = new Content();
+				content.setInlineContent(r);
+				content.setToEncode(false);
 
-                if (type.isBlob()) {
-                    result = new Entry() {
-                        @Override
-                        public void writeInlineContent(XmlWriter writer)
-                                throws SAXException {
-                            try {
-                                r.write(writer);
-                            } catch (IOException e) {
-                                throw new SAXException(e);
-                            }
-                        }
-                    };
-                    result.setNamespaceAware(true);
+				result.setContent(content);
 
-                    Link editLink = new Link(getValueEditRef(entity),
-                            Relation.EDIT_MEDIA, null);
-                    result.getLinks().add(editLink);
-                    Content content = new Content();
-                    // Get the external blob reference
-                    content.setExternalRef(getValueRef(entity));
-                    content.setToEncode(false);
-                    result.setContent(content);
-                } else {
-                    result = new Entry();
-                    Content content = new Content();
-                    content.setInlineContent(r);
-                    content.setToEncode(false);
-
-                    result.setContent(content);
-                }
             }
         }
 
@@ -1348,9 +1378,15 @@ public class Service {
         if (getMetadata() == null || entity == null) {
             return;
         }
-
-        Entry entry = toEntry(entity);
-        ClientResource resource = createResource(getSubpath(entity));
+        EntityType type = metadata.getEntityType(entity.getClass());
+		ClientResource resource = createResource(getSubpath(entity));
+        if (type.isBlob()) {
+			InputStream inputStream = this.handleStreamingWithSlug(entity, type);
+			resource.put(inputStream, slug);
+			// now do merge request for non-stream properties
+			this.mergeEntity(entity);
+		}else{
+			Entry entry = toEntry(entity);
 
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1368,6 +1404,79 @@ public class Service {
         } catch (ResourceException re) {
             throw new ResourceException(re.getStatus(),
                     "Can't update this entity " + resource.getReference());
+        } finally {
+            this.latestRequest = resource.getRequest();
+            this.latestResponse = resource.getResponse();
+			}
+		}
+    }
+
+    /**
+    * Method for merger operation.
+    * @param entity
+	*            The entity to merge.
+	*/
+    public void mergeEntity(Object entity) {
+		this.merge(entity,null);
+	}
+	
+	/**
+	 * Updates an entity.
+	 * 
+	 * @param entity
+	 *            The entity to put.
+	 * @throws Exception
+	 */
+	private void merge(Object entity,String id) {
+		if (getMetadata() == null || entity == null) {
+			return;
+		}
+		EntityType type = metadata.getEntityType(entity.getClass());
+		if (type.isBlob()) {
+			List<Property> properties = type.getProperties();
+			Iterator<Property> iterator = properties.iterator();
+			while (iterator.hasNext()) {
+				Property prop = iterator.next();				
+				if (prop.getType().getName().contains("Stream")) {
+						try {
+							// merge request should not contain data for stream property, so setting it to null.
+							ReflectUtils.invokeSetter(entity, prop.getNormalizedName(), null);
+						} catch (Exception e) {							
+							e.printStackTrace();
+						}
+					break;
+				}
+				
+			}
+		}
+		Entry entry = toEntry(entity);
+		
+		ClientResource resource;
+		if(null!=id){
+			resource = createResource(new Reference(id));
+		}
+		else{
+			resource= createResource(getSubpath(entity));
+		}
+	
+
+		try {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			entry.write(baos);
+			baos.flush();
+			StringRepresentation r = new StringRepresentation(baos.toString(), MediaType.APPLICATION_ATOM);
+			String tag = getTag(entity);
+
+			if (tag != null) {
+				// Add a condition
+				resource.getConditions().setMatch(Arrays.asList(new Tag(tag)));
+			}
+			resource.merge(r);
+		} catch (ResourceException re) {
+			throw new ResourceException(re.getStatus(),
+					"Can't update this entity " + resource.getReference());
+		} catch (IOException io) {
+			io.printStackTrace();
         } finally {
             this.latestRequest = resource.getRequest();
             this.latestResponse = resource.getResponse();
