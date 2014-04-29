@@ -623,7 +623,7 @@ public class TypeUtils {
             result = "Edm.Byte";
         } else if (edmTypeName.endsWith("boolean")) {
             result = "Edm.Boolean";
-        } else if (edmTypeName.endsWith("Date")) {
+        } else if (edmTypeName.endsWith("date")) {
             result = "Edm.DateTime";
         } else if (edmTypeName.endsWith("bigdecimal")) {
             result = "Edm.Decimal";
@@ -633,13 +633,13 @@ public class TypeUtils {
             result = "Edm.Double";
         } else if (edmTypeName.endsWith("short")) {
             result = "Edm.Int16";
-        } else if (edmTypeName.endsWith("int")) {
+        } else if (edmTypeName.endsWith("integer")) {
             result = "Edm.Int32";
         } else if (edmTypeName.endsWith("long")) {
             result = "Edm.Int64";
         } else if (edmTypeName.endsWith("string")) {
             result = "Edm.String";
-		} else if (edmTypeName.endsWith("InputStream".toLowerCase())) {
+		} else if (edmTypeName.endsWith("inputstream")) {
 			result = "Edm.Stream";
         }
 
