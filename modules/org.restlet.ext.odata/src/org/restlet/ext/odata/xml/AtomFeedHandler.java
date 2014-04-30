@@ -1,6 +1,7 @@
 package org.restlet.ext.odata.xml;
 
 import java.io.Reader;
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.sql.Date;
@@ -10,7 +11,9 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLEventWriter;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
@@ -350,8 +353,15 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		AtomFeedHandler.parseProperties(reader, event.asStartElement(), entity);
 	}
 
-	//TODO: Onkar implement this method later
-	/*private static String innerText(XMLEventReader reader, StartElement element) {
+	
+	/**
+	 * API will provide the Text for the given element 
+	 * 
+	 * @param reader - XMLEventReader
+	 * @param element - StartElement
+	 * @return String 
+	 */
+	public static String innerText(XMLEventReader reader, StartElement element) {
 		try {
 			StringWriter sw = new StringWriter();
 			XMLOutputFactory factory = XMLOutputFactory.newInstance();
@@ -375,7 +385,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 			e.printStackTrace();
 		}
 		throw new RuntimeException();
-	}*/
+	}
 
 
 

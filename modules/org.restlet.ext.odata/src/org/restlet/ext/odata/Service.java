@@ -59,6 +59,7 @@ import org.restlet.data.Tag;
 import org.restlet.engine.header.Header;
 import org.restlet.engine.header.HeaderConstants;
 import org.restlet.engine.header.HeaderReader;
+import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
 import org.restlet.ext.atom.Feed;
@@ -86,6 +87,9 @@ import org.restlet.util.Series;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * Acts as a manager for a specific remote OData service. OData services are
@@ -574,7 +578,7 @@ public class Service {
                         .getMediaType())) {
             DomRepresentation xmlRep = new DomRepresentation(representation);
             // [ifndef android] instruction
-            Node node = xmlRep.getNode("//" + tagName);
+            Node node = xmlRep.getNode(tagName);
 
             // [ifdef android] uncomment
             // Node node = null;
@@ -852,18 +856,53 @@ public class Service {
 
             if (function != null) {
                 ClientResource resource = createResource(service);
-                resource.setMethod(function.getMethod());
-                if (parameters != null) {
-                    for (org.restlet.ext.odata.internal.edm.Parameter parameter : function
-                            .getParameters()) {
-                        resource.getReference().addQueryParameter(
-                                parameter.getName(),
-                                TypeUtils.getLiteralForm(parameters
-                                        .getFirstValue(parameter.getName()),
-                                        parameter.getType()));
-                    }
+                if(function.getMethod() !=null){
+                	resource.setMethod(function.getMethod());
                 }
-
+                if (parameters != null) {
+                	// if this is GET/DELETE method then send the paramenters in query string
+                	if(resource.getMethod().equals(new org.restlet.data.Method("GET")) || resource.getMethod().equals(new org.restlet.data.Method("DELETE"))){
+	                    for (org.restlet.ext.odata.internal.edm.Parameter parameter : function
+	                            .getParameters()) {                    	
+	                        resource.getReference().addQueryParameter(
+	                                parameter.getName(),
+	                                TypeUtils.getLiteralForm(parameters
+	                                        .getFirstValue(parameter.getName()),
+	                                        parameter.getType()));
+	                    }
+                	}else{
+                	// if http_method is other than GET/DELETE, then send the function parameters as part of body in json format
+                		Gson gson = new GsonBuilder().serializeNulls().serializeSpecialFloatingPointValues().create();
+                		StringBuilder sb = new StringBuilder();
+                		sb.append("{"+"\n");
+                		String val="";
+                		String json ="";
+                		int noOfParameters=0;
+                		for (Parameter parameter : parameters) {
+                			noOfParameters++;
+							sb.append("\"").append(parameter.getName()).append("\"").append(":");
+							for (org.restlet.ext.odata.internal.edm.Parameter edmParameter : function.getParameters()) {
+								if(parameter.getName().equalsIgnoreCase(edmParameter.getName())){
+									if(edmParameter.getType().contains("Collection")||edmParameter.getType().contains("String")){
+										json=parameter.getValue();
+									}else{
+										val = parameter.getValue();
+										json = gson.toJson(val);
+									}
+									sb.append(json);
+									if(noOfParameters!=parameters.size()){
+										sb.append(",");
+									}
+								}
+							}
+						}
+                		sb.append("\n"+"}");
+                		Series<Header> headerSeries = new Series<Header>(Header.class);
+                    	resource.getRequest().setEntity(sb.toString(), MediaType.APPLICATION_JSON);
+                    	HeaderUtils.addHeader(HeaderConstants.HEADER_ACCEPT,MediaType.APPLICATION_ATOM.getName(),headerSeries);
+                	    resource.setAttribute(HeaderConstants.ATTRIBUTE_HEADERS, headerSeries);
+                	}
+                }
                 result = resource.handle();
                 this.latestRequest = resource.getRequest();
                 this.latestResponse = resource.getResponse();
