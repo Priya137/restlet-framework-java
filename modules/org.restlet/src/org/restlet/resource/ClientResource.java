@@ -33,6 +33,7 @@
 
 package org.restlet.resource;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -56,6 +57,8 @@ import org.restlet.data.Protocol;
 import org.restlet.data.Range;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
+import org.restlet.representation.EmptyRepresentation;
+import org.restlet.representation.InputRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
@@ -1440,6 +1443,29 @@ public class ClientResource extends UniformResource {
         return post(toRepresentation(entity, null));
     }
 
+	/**
+	 * Posts an object entity. Automatically serializes the object using the
+     * {@link org.restlet.service.ConverterService}.
+	 * 
+	 * @param entity
+	 *            The object entity to post.
+	 * @param slugHeader
+	 *            the slug header. For Streaming, we require to send mandatory field's value in Slug header for create
+	 *            operation.
+	 * @return The optional result entity.
+	 * @throws ResourceException
+	 *             the resource exception.
+	 */
+	public Representation post(Object entity, String slugHeader) throws ResourceException {
+		Representation representation = toRepresentation(entity, null);
+		if(null == representation){
+			representation = new EmptyRepresentation();
+        
+		}
+		representation.setSlugHeader(slugHeader);
+		return post(representation);
+	}
+
     // [ifndef gwt] method
     /**
      * Posts an object entity. Automatically serializes the object using the
@@ -1494,6 +1520,20 @@ public class ClientResource extends UniformResource {
     public Representation post(Representation entity) throws ResourceException {
         return handle(Method.POST, entity);
     }
+
+    
+	/**
+	 * Creates a merge request.
+	 *
+	 * @param entity the entity
+	 * @return the representation
+	 * @throws ResourceException the resource exception
+	 */
+	public Representation merge(Representation entity) throws ResourceException {
+		entity.setX_http_header(true); // Need to set this to true so that header contains X-http header as merge.
+		return handle(Method.POST, entity); // create post request with X-http header as merge
+	}
+
 
     /**
      * Puts an object entity. Automatically serializes the object using the
@@ -2058,4 +2098,22 @@ public class ClientResource extends UniformResource {
 
         return result;
     }
+    
+    /**
+	 * Put request with slug header for stream data update
+	 * 
+	 * @param entity
+	 *            the entity
+	 * @param slugHeader
+	 *            the slug header
+	 * @return the representation
+	 */
+	public Representation put(Object entity, String slugHeader) {
+		Representation representation = toRepresentation(entity, null);
+		if(null==representation){
+			representation= new EmptyRepresentation();
+		}
+		representation.setSlugHeader(slugHeader);
+		return put(representation);
+	}
 }
