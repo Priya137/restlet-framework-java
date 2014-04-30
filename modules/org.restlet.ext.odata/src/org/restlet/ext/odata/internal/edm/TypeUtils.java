@@ -210,6 +210,9 @@ public class TypeUtils {
                 result = "guid'" + value + "'";
             } else if (adoNetType.endsWith("String")) {
                 result = "'" + value + "'";
+            }else if (adoNetType.endsWith("Double") || adoNetType.endsWith("Float")
+               || adoNetType.endsWith("Integer") || adoNetType.endsWith("Long")) {
+                result = value ;
             }
         } catch (Exception e) {
             Context.getCurrentLogger().warning(

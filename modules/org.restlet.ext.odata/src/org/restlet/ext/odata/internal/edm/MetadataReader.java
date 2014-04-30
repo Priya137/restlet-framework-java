@@ -41,6 +41,8 @@ import java.util.Map;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.ext.odata.Service;
+import org.restlet.ext.odata.internal.reflect.ReflectUtils;
+import org.restlet.ext.xml.format.XmlFormatParser;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -278,16 +280,13 @@ public class MetadataReader extends DefaultHandler {
                     }
                 }
                 // entityType.baseType
-                entityType
-                        .setBaseType((EntityType) resolve(
-                                entityType.getBaseType(),
-                                registeredEntityTypes, schema));
+                entityType.setBaseType((EntityType) resolve(entityType
+                        .getBaseType(), registeredEntityTypes, schema));
             }
             for (ComplexType complexType : schema.getComplexTypes()) {
                 // complexType.baseType
-                complexType.setBaseType((ComplexType) resolve(
-                        complexType.getBaseType(), registeredComplexTypes,
-                        schema));
+                complexType.setBaseType((ComplexType) resolve(complexType
+                        .getBaseType(), registeredComplexTypes, schema));
             }
         }
         for (EntityContainer container : currentMetadata.getContainers()) {
@@ -319,9 +318,9 @@ public class MetadataReader extends DefaultHandler {
             }
             // - entityContainer.functionImport.entitySet
             for (FunctionImport functionImport : container.getFunctionImports()) {
-                functionImport.setEntitySet((EntitySet) resolve(
-                        functionImport.getEntitySet(), registeredEntitySets,
-                        container.getSchema()));
+                functionImport.setEntitySet((EntitySet) resolve(functionImport
+                        .getEntitySet(), registeredEntitySets, container
+                        .getSchema()));
             }
         }
 
@@ -330,9 +329,8 @@ public class MetadataReader extends DefaultHandler {
                 // entityType.complexTypes
                 for (ComplexProperty property : entityType
                         .getComplexProperties()) {
-                    ComplexType type = (ComplexType) resolve(
-                            property.getComplexType(), registeredComplexTypes,
-                            schema);
+                    ComplexType type = (ComplexType) resolve(property
+                            .getComplexType(), registeredComplexTypes, schema);
                     if (type != null) {
                         property.setComplexType(type);
                     }
@@ -342,9 +340,8 @@ public class MetadataReader extends DefaultHandler {
                 // entityType.complexTypes
                 for (ComplexProperty property : complexType
                         .getComplexProperties()) {
-                    ComplexType type = (ComplexType) resolve(
-                            property.getComplexType(), registeredComplexTypes,
-                            schema);
+                    ComplexType type = (ComplexType) resolve(property
+                            .getComplexType(), registeredComplexTypes, schema);
                     if (type != null) {
                         property.setComplexType(type);
                     }
@@ -574,8 +571,7 @@ public class MetadataReader extends DefaultHandler {
                 property = p;
                 property.setDefaultValue(attrs.getValue("Default"));
             }
-
-            property.setDefaultValue(attrs.getValue("Default"));
+            // Onkar : isCreatable, isnullable annotations are dsds specific, TODO: Check if they are getting set correctly
             // If no value is specified, the nullable facet defaults to true.
             // cf http://www.odata.org/documentation/odata-v3-documentation/common-schema-definition-language-csdl/#531_The_edmNullable_Attribute
             String nullable = attrs.getValue("Nullable");
@@ -675,13 +671,48 @@ public class MetadataReader extends DefaultHandler {
             currentFunctionImport.setMethodAccess(attrs
                     .getValue("MethodAccess"));
             currentFunctionImport.setMetadata(currentMetadata);
+            String elementType = attrs.getValue(XmlFormatParser.NS_DSDS_EDMANNOTATION, "elementType");
+			if (elementType != null) {
+				String[] split = elementType.split("\\.");
+				String pkgName = ReflectUtils.normalize(split[0]);
+				String className = ReflectUtils.normalize(split[1]);
+				className = className.substring(0, 1).toUpperCase() + className.substring(1);
+				currentFunctionImport.setJavaReturnType(pkgName + "." + className);
+				currentFunctionImport.setComplex(true);
+			} else if (attrs.getValue("ReturnType") != null) {
+				if (attrs.getValue("ReturnType").startsWith("Collection")) {
+					String type = TypeUtils.getClassType(attrs.getValue("ReturnType"));
+					currentFunctionImport.setJavaReturnType("List<"+type+">");
+					currentFunctionImport.setReturnType(type);
+					currentFunctionImport.setCollection(true);
+				}else {
+					currentFunctionImport.setSimple(true);
+					currentFunctionImport.setJavaReturnType(TypeUtils
+							.toJavaTypeName(attrs.getValue("ReturnType")));
+				}
+			}else {				
+				currentFunctionImport.setComplex(true);
+				currentFunctionImport.setJavaReturnType("void");
+			}	
+            
 
-            String str = attrs.getValue(
+            String httpMethod = attrs.getValue(
                     Service.WCF_DATASERVICES_METADATA_NAMESPACE, "HttpMethod");
-            if (str != null) {
-                currentFunctionImport.setMethod(Method.valueOf(str));
+            if (httpMethod != null) {
+                currentFunctionImport.setMethod(Method.valueOf(httpMethod));
             }
-
+            else{
+            	//Default to POST if isSideEffecting="true" and no Http method provided            	
+            	Boolean isSideEffecting = Boolean.parseBoolean(attrs.getValue("IsSideEffecting"));
+                if(isSideEffecting){
+                 currentFunctionImport.setMethod(Method.valueOf("POST"));
+                } 
+                else{
+                //Default to GET is isSideEffecting=”false” and no Http method provided
+                 currentFunctionImport.setMethod(Method.valueOf("GET"));
+                }
+            }
+            
             if (State.ENTITY_CONTAINER == getState()) {
                 currentEntityContainer.getFunctionImports().add(
                         currentFunctionImport);
@@ -692,6 +723,12 @@ public class MetadataReader extends DefaultHandler {
             if (State.FUNCTION_IMPORT == getState()) {
                 Parameter parameter = new Parameter(attrs.getValue("Name"));
                 parameter.setType(attrs.getValue("Type"));
+                if(attrs.getValue("Type").startsWith("Collection")){
+                	String edmType = TypeUtils.getClassType(attrs.getValue("Type"));
+					parameter.setJavaType("List<"+edmType+">");
+                }else{
+                	parameter.setJavaType(TypeUtils.toJavaTypeName(attrs.getValue("Type")));
+                }
                 parameter.setMode(attrs.getValue("Mode"));
                 String str = attrs.getValue("MaxLength");
                 if (str != null) {
