@@ -937,11 +937,12 @@ public class Service {
 							sb.append("\"").append(parameter.getName()).append("\"").append(":");
 							for (org.restlet.ext.odata.internal.edm.Parameter edmParameter : function.getParameters()) {
 								if(parameter.getName().equalsIgnoreCase(edmParameter.getName())){
-									if(edmParameter.getType().contains("Collection")||edmParameter.getType().contains("String")){
-										json=parameter.getValue();
+									if(edmParameter.getType().contains("String")){
+										json = "\"" + parameter.getValue()+ "\"";
+									}else if(edmParameter.getType().contains("Collection")){
+										json = parameter.getValue();
 									}else{
-										val = parameter.getValue();
-										json = gson.toJson(val);
+										json = parameter.getValue();
 									}
 									sb.append(json);
 									if(noOfParameters!=parameters.size()){
