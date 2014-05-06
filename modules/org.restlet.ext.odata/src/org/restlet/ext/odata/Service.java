@@ -74,6 +74,7 @@ import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.internal.edm.Property;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
+import org.restlet.ext.odata.streaming.StreamReference;
 import org.restlet.ext.xml.DomRepresentation;
 import org.restlet.ext.xml.SaxRepresentation;
 import org.restlet.ext.xml.XmlWriter;
@@ -155,6 +156,12 @@ public class Service {
     /** The reference of the WCF service. */
     private Reference serviceRef;
 
+	/** The content type. */
+	private String contentType;
+
+	/** The isUpdateStreamData used to decide update operation on stream. */
+	private boolean isUpdateStreamData;	
+
     /**
      * Constructor.
      * 
@@ -228,7 +235,7 @@ public class Service {
 								+ " due to the lack of the service's metadata.");
 					}
 					//post the inputstream with slug header.
-					rep = resource.post(inputStream, slug);
+					rep = resource.post(inputStream, slug, contentType);
 					EntryContentHandler<?> entryContentHandler = new EntryContentHandler<Object>(entity.getClass(),
 							(Metadata) getMetadata(), getLogger());
 					Entry currentEntity = new Entry(rep, entryContentHandler);
@@ -290,11 +297,14 @@ public class Service {
 				}
 			} else {
 				if (prop.getType().getName().contains("Stream")) { // find the streaming property from entity and assign stream value to it.  
-					Object propertyObject = ReflectUtils.invokeGetter(entity, prop.getNormalizedName());
+					Object propertyObject = ReflectUtils.invokeGetter(entity, prop.getNormalizedName());					
 					if(null!= propertyObject){
-						inputStream = (InputStream) propertyObject;									
-					}
-				}
+						StreamReference streamReference = (StreamReference) propertyObject;
+						inputStream = streamReference.getInputStream();
+	                    contentType = streamReference.getContentType();
+	                    isUpdateStreamData = streamReference.isUpdateStreamData();
+	                }				
+               }
 			}
 		}
 		return inputStream;
@@ -1422,7 +1432,9 @@ public class Service {
 		ClientResource resource = createResource(getSubpath(entity));
         if (type.isBlob()) {
 			InputStream inputStream = this.handleStreamingWithSlug(entity, type);
-			resource.put(inputStream, slug);
+			if (null != inputStream || isUpdateStreamData) {//Check for null inputstream and isUpdateStreamData=true then upadate null to stream data
+				resource.put(inputStream, slug, contentType);
+			}
 			// now do merge request for non-stream properties
 			this.mergeEntity(entity);
 		}else{

@@ -34,6 +34,7 @@ import org.restlet.ext.odata.internal.edm.Mapping;
 import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
+import org.restlet.ext.odata.streaming.StreamReference;
 import org.restlet.ext.xml.format.FormatParser;
 import org.restlet.ext.xml.format.XmlFormatParser;
 
@@ -420,7 +421,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		String updated = null;
 		String contentType = null;
 		Person p = null;
-		
+		String relativeURL=null;
+		//read the base URL form Feed/Entry
+		String baseURL=entryElement.getAttributeByName(XML_BASE).getValue();
+
 		Entry rt = new Entry();
 
 		while (reader.hasNext()) {
@@ -475,6 +479,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				} else if (isStartElement(event, ATOM_CONTENT)) {
 					contentType = getAttributeValueIfExists(event.asStartElement(),
 							"type");
+					relativeURL = getAttributeValueIfExists(event.asStartElement(),
+							"src");
 					if (MediaType.APPLICATION_XML.getName().equals(contentType)) {
 						StartElement contentElement = event.asStartElement();
 						StartElement valueElement = null;
@@ -505,6 +511,20 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 							}
 						}
 					} else {
+						if(entityType.isBlob()){
+							for (Field field : entity.getClass()
+									.getDeclaredFields()) {
+								Class<?> type = field.getType();							
+								if(type.getName().contains("StreamReference")){
+									Reference baseReference = new Reference(baseURL);
+								    StreamReference streamReference = new StreamReference(baseReference,relativeURL);
+								    streamReference.setContentType(contentType);
+								    ReflectUtils.invokeSetter(entity,
+												ReflectUtils.normalize(field.getName()), streamReference);
+								    break;
+								}
+							}
+						}
 						Entry e = new Entry();
 						// TODO: Onkar : Set Basic content by implementing innerText method later
 						//e.setContent(innerText(reader, event.asStartElement()));
@@ -794,7 +814,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				// populate the object
 				this.parseEntry(reader, event.asStartElement(), entitySet, (T) o);
 				// set it back to parent entity
-				ReflectUtils.invokeSetter(entity, propertyName, o);
+				ReflectUtils.invokeSetter(entity, ReflectUtils.normalize(propertyName), o);
 			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();

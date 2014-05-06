@@ -1452,15 +1452,20 @@ public class ClientResource extends UniformResource {
 	 * @param slugHeader
 	 *            the slug header. For Streaming, we require to send mandatory field's value in Slug header for create
 	 *            operation.
+	 * @param contentType
+	 *             the content type
 	 * @return The optional result entity.
 	 * @throws ResourceException
 	 *             the resource exception.
 	 */
-	public Representation post(Object entity, String slugHeader) throws ResourceException {
+	public Representation post(Object entity, String slugHeader,String contentType) throws ResourceException {
 		Representation representation = toRepresentation(entity, null);
 		if(null == representation){
 			representation = new EmptyRepresentation();
         
+		}
+		if(null != contentType){//set the contentType 
+			representation.setMediaType(new MediaType(contentType));
 		}
 		representation.setSlugHeader(slugHeader);
 		return post(representation);
@@ -2106,12 +2111,17 @@ public class ClientResource extends UniformResource {
 	 *            the entity
 	 * @param slugHeader
 	 *            the slug header
+	 * @param contentType
+	 *             the content type
 	 * @return the representation
 	 */
-	public Representation put(Object entity, String slugHeader) {
+	public Representation put(Object entity, String slugHeader,String contentType) {
 		Representation representation = toRepresentation(entity, null);
 		if(null==representation){
 			representation= new EmptyRepresentation();
+		}
+		if(null!=contentType){//set the contentType
+			representation.setMediaType(new MediaType(contentType));
 		}
 		representation.setSlugHeader(slugHeader);
 		return put(representation);
