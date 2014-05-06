@@ -49,6 +49,7 @@ import org.restlet.Context;
 import org.restlet.engine.util.Base64;
 import org.restlet.engine.util.DateUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
+import org.restlet.ext.odata.streaming.StreamReference;
 
 /**
  * Handle type operations.
@@ -613,7 +614,7 @@ public class TypeUtils {
         } else if (edmTypeName.startsWith("List")) {
             result = List.class;
 		} else if (edmTypeName.endsWith("Stream")) {
-			result = InputStream.class;
+			result = StreamReference.class;
         }
 
         return result;
@@ -642,7 +643,7 @@ public class TypeUtils {
             result = "Edm.Int64";
         } else if (edmTypeName.endsWith("string")) {
             result = "Edm.String";
-		} else if (edmTypeName.endsWith("inputstream")) {
+		} else if (edmTypeName.endsWith("streamreference")) {
 			result = "Edm.Stream";
         }
 
@@ -687,7 +688,7 @@ public class TypeUtils {
         } else if (edmTypeName.endsWith("String")) {
             result = "String";
 		} else if (edmTypeName.endsWith("Stream")) {
-			result = "InputStream";
+			result = "StreamReference";
         }
 
         return result;
