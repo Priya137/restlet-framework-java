@@ -225,7 +225,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
     	String jsonValue=gson.toJson(${parameter.name});    	
     	param${parameter.name}.setValue(jsonValue);
     	<#else>
-    	param${parameter.name}.setValue(${parameter.name}.toString());
+    	param${parameter.name}.setValue(${parameter.name}!=null?${parameter.name}.toString():null);
     	</#if>
 		parameters.add(param${parameter.name});
         </#list>
@@ -264,13 +264,13 @@ public class ${className} extends org.restlet.ext.odata.Service {
     	String jsonValue=gson.toJson(${parameter.name});    	
     	param${parameter.name}.setValue(jsonValue);
     	<#else>
-    	param${parameter.name}.setValue(${parameter.name}.toString());
+    	param${parameter.name}.setValue(${parameter.name}!=null?${parameter.name}.toString():null);
     	</#if>
 		parameters.add(param${parameter.name});
         </#list>
         <#if functionImport.javaReturnType!="void">
 		Representation representation = invokeComplex("${functionImport.name}", parameters);
-		${functionImport.name} = (${functionImport.javaReturnType})this.functionContentHandler.parseResult(${functionImport.name}.getClass(), representation, "${functionImport.name}", ${functionImport.name});
+		${functionImport.name} = (${functionImport.javaReturnType})this.functionContentHandler.parseResult(${functionImport.returnType}.class, representation, "${functionImport.name}", ${functionImport.name});
     	<#else>
     	invokeComplex("${functionImport.name}", parameters);
     	</#if>
@@ -296,7 +296,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
     	<#list functionImport.parameters as parameter>
     	Parameter param${parameter.name} = new Parameter();
 	    param${parameter.name}.setName("${parameter.name}");
-		param${parameter.name}.setValue(${parameter.name}.toString());
+		param${parameter.name}.setValue(${parameter.name}!=null?${parameter.name}.toString():null);
 		parameters.add(param${parameter.name});
         </#list>
     	String stringValue = invokeSimple("${functionImport.name}", parameters);
