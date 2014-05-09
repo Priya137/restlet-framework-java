@@ -68,7 +68,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
     
     /** The feed. */
     private Feed feed;
-	
+    
+	 /** The baseURL. */
+    private String baseURL;
+    
 	/**
 	 * Gets the entities.
 	 *
@@ -187,6 +190,11 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 								.getValue());
 					}
 					parseAtomFeedLinks(event);
+				} else if (isStartElement(event, ATOM_FEED)) {
+					Attribute attributeByName = event.asStartElement().getAttributeByName(XML_BASE);
+					if(attributeByName!=null){
+						baseURL=attributeByName.getValue();
+					}			
 				} else if (isEndElement(event, ATOM_FEED)) {
 					// return from a sub feed, if we went down the hierarchy
 					break;
@@ -423,7 +431,13 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 		Person p = null;
 		String relativeURL=null;
 		//read the base URL form Feed/Entry
-		String baseURL=entryElement.getAttributeByName(XML_BASE).getValue();
+		if(null==baseURL){
+			Attribute attributeByName = entryElement.getAttributeByName(XML_BASE);
+			if(attributeByName!=null){
+				baseURL=attributeByName.getValue();
+			}			
+		}
+		
 
 		Entry rt = new Entry();
 
