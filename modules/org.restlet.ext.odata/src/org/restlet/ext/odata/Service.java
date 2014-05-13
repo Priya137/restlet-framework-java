@@ -89,9 +89,6 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 /**
  * Acts as a manager for a specific remote OData service. OData services are
  * stateless, but {@link Service} instances are not. State on the client is
@@ -936,11 +933,8 @@ public class Service {
 	                                        parameter.getType()));
 	                    }
                 	}else{
-                	// if http_method is other than GET/DELETE, then send the function parameters as part of body in json format
-                		Gson gson = new GsonBuilder().serializeNulls().serializeSpecialFloatingPointValues().create();
-                		StringBuilder sb = new StringBuilder();
+                	StringBuilder sb = new StringBuilder();
                 		sb.append("{"+"\n");
-                		String val="";
                 		String json ="";
                 		int noOfParameters=0;
                 		for (Parameter parameter : parameters) {
