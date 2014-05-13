@@ -1,4 +1,4 @@
-package org.restlet.test.ext.odata.crudActionsAndFunction;
+package org.restlet.test.ext.odata.function;
 
 import org.restlet.Application;
 import org.restlet.Context;
@@ -9,7 +9,6 @@ import org.restlet.data.CharacterSet;
 import org.restlet.data.LocalReference;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
-import org.restlet.data.Status;
 import org.restlet.routing.Router;
 
 /**

@@ -1,4 +1,4 @@
-package org.restlet.test.ext.odata.crudActionsAndFunction;
+package org.restlet.test.ext.odata.function;
 
 
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class ActionTestCase extends RestletTestCase {
     private Component component = new Component();
 
     /** OData service used for all tests. */
-    private UnitService service;
+    private FunctionService service;
 
     @Override
     protected void setUp() throws Exception {
@@ -31,7 +31,7 @@ public class ActionTestCase extends RestletTestCase {
                 new UnitApplication());
         component.start();
 
-        service = new UnitService();
+        service = new FunctionService();
     }
 
     @Override
@@ -40,9 +40,11 @@ public class ActionTestCase extends RestletTestCase {
         component = null;
         super.tearDown();
     }
-    
+    /**
+     * Tests the actions.
+     */
     public void testAction() {
-    	UnitService service = new UnitService();
+    	FunctionService service = new FunctionService();
   		List<Double> values = null;
   		try {
   			List<Double> doubleList = new ArrayList<Double>();

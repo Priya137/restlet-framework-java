@@ -1,4 +1,4 @@
-package org.restlet.test.ext.odata.crudActionsAndFunction;
+package org.restlet.test.ext.odata.function;
 
 
 import junit.framework.Assert;
@@ -16,7 +16,7 @@ public class FunctionTestCase extends RestletTestCase {
     private Component component = new Component();
 
     /** OData service used for all tests. */
-    private UnitService service;
+    private FunctionService service;
 
     @Override
     protected void setUp() throws Exception {
@@ -28,7 +28,7 @@ public class FunctionTestCase extends RestletTestCase {
                 new UnitApplication());
         component.start();
 
-        service = new UnitService();
+        service = new FunctionService();
     }
 
     @Override
@@ -38,9 +38,11 @@ public class FunctionTestCase extends RestletTestCase {
         super.tearDown();
     }
 
-
-    public void testCrudProduct() {
-    	UnitService service = new UnitService();
+    /**
+     * Tests the function to return correct value.
+     */
+    public void testFunction() {
+    	FunctionService service = new FunctionService();
 		Nextval_t nextval = null;
 		try {
 			nextval = service.nextval("RCompany");
