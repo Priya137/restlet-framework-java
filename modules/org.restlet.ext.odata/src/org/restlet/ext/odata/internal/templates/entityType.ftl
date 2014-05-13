@@ -44,6 +44,9 @@ import ${t.fullClassName};
 </#list>
 </#compress>
 
+import org.restlet.ext.odata.validation.annotation.NotNull;
+import org.restlet.ext.odata.validation.annotation.PrimaryKey;
+import org.restlet.ext.odata.validation.annotation.SystemGenerated;
 
 <#compress>
 /**
@@ -57,6 +60,9 @@ import ${t.fullClassName};
 public <#if type.abstractType>abstract </#if>class ${className} {
 
 <#list type.properties?sort_by("name") as property>
+	<#list property.annotations as annotation>
+  	@${annotation}
+  	</#list>
   <#if property.type??>
     private ${property.type.className} ${property.propertyName}<#if property.defaultValue??> = property.defaultValue</#if>;
   <#else>
