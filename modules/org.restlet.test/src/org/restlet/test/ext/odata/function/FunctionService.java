@@ -1,4 +1,4 @@
-package org.restlet.test.ext.odata.crudActionsAndFunction;
+package org.restlet.test.ext.odata.function;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,19 +18,19 @@ import com.google.gson.GsonBuilder;
  * Generated for the WCF Data Services extension for the
  * Restlet framework.<br> 
  */
-public class UnitService extends Service {
+public class FunctionService extends Service {
 
 	FunctionContentHandler functionContentHandler;
 
 	/**
 	 * Constructor. 
 	 */
-	public UnitService() {
+	public FunctionService() {
 		super("http://localhost:8111/Unit.svc");
 		this.functionContentHandler = new JsonContentFunctionHandler();
 	}
 
-	public UnitService(FunctionContentHandler functionContentHandler) {
+	public FunctionService(FunctionContentHandler functionContentHandler) {
 		super("http://localhost:8111/Unit.svc");
 		this.functionContentHandler = functionContentHandler;
 	}

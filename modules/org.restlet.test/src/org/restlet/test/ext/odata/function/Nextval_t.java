@@ -1,4 +1,4 @@
-package org.restlet.test.ext.odata.crudActionsAndFunction;
+package org.restlet.test.ext.odata.function;
 
 
 /**
