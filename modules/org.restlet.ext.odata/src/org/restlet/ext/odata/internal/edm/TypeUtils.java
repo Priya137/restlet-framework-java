@@ -35,7 +35,6 @@ package org.restlet.ext.odata.internal.edm;
 
 import java.beans.PropertyEditor;
 import java.beans.PropertyEditorManager;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
