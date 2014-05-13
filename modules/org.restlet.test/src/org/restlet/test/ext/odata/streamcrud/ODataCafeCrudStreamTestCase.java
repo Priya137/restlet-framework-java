@@ -49,7 +49,7 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
     }
 
 
-    public void testCrudProduct() {
+    public void testStreamingCrudCafe() {
 		CafeService service = new CafeService();
 
 		//create.
