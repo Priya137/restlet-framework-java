@@ -64,6 +64,7 @@ import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
 import org.restlet.ext.atom.Feed;
+import org.restlet.ext.odata.annotation.SystemGenerated;
 import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
 import org.restlet.ext.odata.internal.edm.ComplexProperty;
@@ -1228,6 +1229,8 @@ public class Service {
                             AttributesImpl nullAttrs) throws SAXException {
                         for (Field field : entity.getClass()
                                 .getDeclaredFields()) {
+                        	SystemGenerated systemGeneratedAnnotation = field
+                        			.getAnnotation(SystemGenerated.class);
                             String getter = "get"
                                     + field.getName().substring(0, 1)
                                             .toUpperCase()
@@ -1235,7 +1238,7 @@ public class Service {
                             Property prop = ((Metadata) getMetadata())
                                     .getProperty(entity, field.getName());
 
-                            if (prop != null) {
+							if (prop != null && systemGeneratedAnnotation == null) {
                                 writeProperty(writer, entity, prop, getter,
                                         nullAttrs);
                             }
