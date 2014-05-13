@@ -64,7 +64,6 @@ import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
 import org.restlet.ext.atom.Feed;
-import org.restlet.ext.odata.annotation.SystemGenerated;
 import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
 import org.restlet.ext.odata.internal.edm.ComplexProperty;
@@ -76,6 +75,7 @@ import org.restlet.ext.odata.internal.edm.Property;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.odata.streaming.StreamReference;
+import org.restlet.ext.odata.validation.annotation.SystemGenerated;
 import org.restlet.ext.xml.DomRepresentation;
 import org.restlet.ext.xml.SaxRepresentation;
 import org.restlet.ext.xml.XmlWriter;
@@ -933,7 +933,7 @@ public class Service {
 	                                        parameter.getType()));
 	                    }
                 	}else{
-                	StringBuilder sb = new StringBuilder();
+                	    StringBuilder sb = new StringBuilder();
                 		sb.append("{"+"\n");
                 		String json ="";
                 		int noOfParameters=0;
