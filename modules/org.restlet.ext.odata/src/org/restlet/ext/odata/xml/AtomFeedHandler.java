@@ -299,6 +299,10 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	
 					String name = event.asStartElement().getName().getLocalPart();
 					propertyName = ReflectUtils.normalize(name);
+					//Check if that property is java reserved key word. If so then prefix it with '_' 
+					if(ReflectUtils.isReservedWord(propertyName)){
+						propertyName="_"+propertyName;
+					}
 					parsePropertiesByType(reader, entity, propertyName, event);
 				}
 			}
