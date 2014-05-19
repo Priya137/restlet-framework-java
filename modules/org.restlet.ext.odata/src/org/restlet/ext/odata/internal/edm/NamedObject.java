@@ -57,7 +57,12 @@ public class NamedObject {
     public NamedObject(String name) {
         super();
         this.name = name;
-        this.normalizedName = ReflectUtils.normalize(name);
+        String normalizedName = ReflectUtils.normalize(name);
+        if (ReflectUtils.isReservedWord(normalizedName)) {
+        	normalizedName = "_" + normalizedName;
+        }
+       	this.normalizedName = normalizedName;
+        
     }
 
     /**

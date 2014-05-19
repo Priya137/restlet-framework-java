@@ -47,6 +47,7 @@ import ${t.fullClassName};
 import org.restlet.ext.odata.validation.annotation.NotNull;
 import org.restlet.ext.odata.validation.annotation.PrimaryKey;
 import org.restlet.ext.odata.validation.annotation.SystemGenerated;
+import org.restlet.ext.odata.validation.annotation.JavaReservedKeyWord;
 
 <#compress>
 /**

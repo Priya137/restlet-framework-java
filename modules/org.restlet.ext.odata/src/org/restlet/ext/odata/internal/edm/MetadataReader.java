@@ -609,6 +609,12 @@ public class MetadataReader extends DefaultHandler {
                 }
             }
             
+            String propName = attrs.getValue("Name");
+            //add annotation to the property if it property name is same as java reserved key word.
+            if(propName!=null&&ReflectUtils.isReservedWord(propName.toLowerCase())){
+            	property.getAnnotations().add("JavaReservedKeyWord");
+            }
+            
             if(currentEntityType!=null){
 	            List<Property> keys = currentEntityType.getKeys();
 	            for(Property prop : keys){
