@@ -42,6 +42,7 @@ import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -135,7 +136,11 @@ public class Service {
     private Logger logger;
     
     private String slug = "";
-
+   
+    /** 
+     * add Query parameter in request header for each call.
+     */
+    private Map<String, String> parameters;
     /**
      * The maximum version of the OData protocol extensions the client can
      * accept in a response.
@@ -363,21 +368,34 @@ public class Service {
         }
 
         resource.setChallengeResponse(getCredentials());
-
+        Series<Header> headers = new Series<Header>(Header.class);
         if (getClientVersion() != null || getMaxClientVersion() != null) {
-            Series<Header> headers = new Series<Header>(Header.class);
-
+        	
             if (getClientVersion() != null) {
                 headers.add("DataServiceVersion", getClientVersion());
             }
 
             if (getMaxClientVersion() != null) {
                 headers.add("MaxDataServiceVersion", getMaxClientVersion());
-            }
-
-            resource.setAttribute(HeaderConstants.ATTRIBUTE_HEADERS, headers);
+            }            
+          
         }
+       
+		/*
+		 * Check if query parameter map is not null and not empty, add all the
+		 * Query parameters in request as a header.
+		 */
+		if (getParameter() != null && !getParameter().isEmpty()) {
+			Iterator<java.util.Map.Entry<String, String>> iterator = getParameter()
+					.entrySet().iterator();
+			while (iterator.hasNext()) {
+				java.util.Map.Entry<String, String> entry = iterator.next();
+				headers.add(entry.getKey(), entry.getValue());
+			}
 
+		}    
+        resource.setAttribute(HeaderConstants.ATTRIBUTE_HEADERS, headers);
+       
         return resource;
     }
 
@@ -1531,5 +1549,23 @@ public class Service {
             this.latestResponse = resource.getResponse();
         }
     }
+
+	/**
+	 * Gets Query parameter.
+	 *
+	 * @return the parameter
+	 */
+	public Map<String, String> getParameter() {
+		return parameters;
+	}
+
+	/**
+	 * Sets Query parameter in request header.
+	 *
+	 * @param parameter the parameter
+	 */
+	public void setParameters(Map<String, String> parameters) {
+		this.parameters = parameters;
+	}
 
 }
