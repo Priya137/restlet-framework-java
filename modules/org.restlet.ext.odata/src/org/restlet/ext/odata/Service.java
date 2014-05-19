@@ -1564,7 +1564,7 @@ public class Service {
 	 *
 	 * @param parameter the parameter
 	 */
-	public void setAddParameter(Map<String, String> parameters) {
+	public void setParameters(Map<String, String> parameters) {
 		this.parameters = parameters;
 	}
 
