@@ -89,7 +89,7 @@ public final class ChallengeScheme {
     public static final ChallengeScheme HTTP_COOKIE = new ChallengeScheme(
             "HTTP_Cookie", "Cookie", "Cookie HTTP authentication");
     
-    /** Plain FTP scheme. */
+    /** HTTP Negotiate scheme. */
     public static final ChallengeScheme HTTP_NEGOTIATE = new ChallengeScheme(
             "HTTP_NEGOTIATE", "Negotiate", "HTTP Negotiate authentication");
 
