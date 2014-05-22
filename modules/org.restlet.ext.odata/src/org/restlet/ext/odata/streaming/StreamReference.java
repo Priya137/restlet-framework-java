@@ -1,9 +1,7 @@
 package org.restlet.ext.odata.streaming;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.logging.Level;
 
 import org.restlet.Context;
@@ -13,31 +11,40 @@ import org.restlet.representation.Representation;
 import org.restlet.resource.ClientResource;
 
 /**
- * This class stores the Stream data reference and its contentType.One can read, Create and update stream data by using
- * this class.<br>
+ * This class stores the Stream data reference and its contentType.One can read,
+ * Create and update stream data by using this class.<br>
  * <br>
  * 
- * The {@link InputStream} to be read as Media Link Entry(MLE)/Stream from the server is fetched lazily using a call to
- * the {@link #getInputStream(Service)} method. Please note that it is essential to pass the {@link Service} to the
- * method as the service instance holds the authenticated credentials that needs to be passed as part of this client
- * request.<br>
+ * The {@link InputStream} to be read as Media Link Entry(MLE)/Stream from the
+ * server is fetched lazily using a call to the {@link #getInputStream(Service)}
+ * method. Please note that it is essential to pass the {@link Service} to the
+ * method as the service instance holds the authenticated credentials that needs
+ * to be passed as part of this client request.<br>
  * <br>
  * 
- * <b>DO NOT</b> use the {@link #getInputStream()} method for lazy fetching a stream; this method is used internally by
- * the framework while saving the stream.When saving a MLE, please use the {@link #setInputStream(InputStream)} method
- * to set the reference to the {@link InputStream} that you want to persist on the server.<br>
+ * <b>DO NOT</b> use the {@link #getInputStream()} method for lazy fetching a
+ * stream; this method is used internally by the framework while saving the
+ * stream.When saving a MLE, please use the {@link #setInputStream(InputStream)}
+ * method to set the reference to the {@link InputStream} that you want to
+ * persist on the server.<br>
  * <br>
  * 
- * You can use the {@link #getNonBlockingInputStream(Service)} method to lazily read non protocol buffer streams from
- * the OData server.
+ * <b>NOTE</b>
+ * <ol>
+ * <li>If you need to use blocking {@link InputStream} continous inputstream as
+ * in case of protocol buffers; please use the <code>org.restlet.ext.net</code>
+ * connector by placing the <i>org.restlet.ext.net.jar</i> file in the
+ * classpath.</li>
+ * <li>If you need to use non-blocking I/O to read the stream using buffered
+ * data reader as in the case you are reading files/documents; please use the
+ * <code>org.restlet.ext.httpclient</code> connector by placing the
+ * <i>org.restlet.ext.httpclient.jar</i> file and it's dependencies in the
+ * classpath.</li>
+ * <li>Note that at any point of time the client can use only 1 connector and
+ * they have to be mutually exclusive.</li>
+ * </ol>
  */
 public class StreamReference extends Reference {
-
-	/** The Constant COPY_BUFFER_SIZE that holds the data for copy from input to output stream; set to 64KB */
-	private static final int COPY_BUFFER_SIZE = 1024 * 8 * 8;
-
-	/** The Constant INITIAL_BUFFER_SIZE that is used to initialize the buffer; set to 64 MB */
-	private static final int INITIAL_BUFFER_SIZE = 1024 * 1024 * 64;
 
 	/** The input stream. */
 	private InputStream inputStream;
@@ -49,7 +56,8 @@ public class StreamReference extends Reference {
 	private boolean isUpdateStreamData;
 
 	/**
-	 * Instantiates a new stream reference. This method is used to create StreamReference with the URL.
+	 * Instantiates a new stream reference. This method is used to create
+	 * StreamReference with the URL.
 	 * 
 	 * @param baseRef
 	 *            the base ref
@@ -61,7 +69,8 @@ public class StreamReference extends Reference {
 	}
 
 	/**
-	 * Instantiates a new stream reference. Use this to instantiates stream reference for doing create.
+	 * Instantiates a new stream reference. Use this to instantiates stream
+	 * reference for doing create.
 	 * 
 	 * @param contentType
 	 *            the content type
@@ -91,20 +100,21 @@ public class StreamReference extends Reference {
 	}
 
 	/**
-	 * Gets the blocking input stream that is made available by reading the stream contents in memory. This is required
-	 * for protocol buffers that send multiple protobuf objects as part of one HTTP response.<br>
+	 * This method returns the stream that provides the handle to the data being
+	 * pushed back from the server.<br>
+	 * <br>
+	 * The client program should use the <b>org.restlet.ext.net</b> connector
+	 * when the client depends on the entire inputstream being available for
+	 * processing say in case of processing Google Protocol Buffer streams.<br>
 	 * <br>
 	 * 
-	 * This method should <b>be used</b> when the client depends on the entire inputstream being available for
-	 * processing say in case of processing Google Protocol Buffer streams.
+	 * The client program should use the <b>org.restlet.ext.httpclient</b>
+	 * connector when the client is downloading file or document based streams
+	 * that don't need to be available for client program to process as
+	 * continuous input stream.
 	 * 
-	 * This method should <b>NOT be used</b> when you are downloading file or document based streams that don't need to
-	 * be available for client program to process as continous inputstream.
-	 * 
-	 * @param identifier
-	 *            the identifier
-	 * @param password
-	 *            the password
+	 * @param service
+	 *            the service
 	 * @return the inputStream
 	 * @throws IOException
 	 *             Signals that an I/O exception has occurred.
@@ -115,75 +125,17 @@ public class StreamReference extends Reference {
 			ClientResource clientResource = service.createResource(this);
 			Representation representation = clientResource.get();
 			if (representation != null) {
-				final InputStream inputStreamFromServer = representation.getStream();
-				ByteArrayOutputStream outputByteArrayStream = new ByteArrayOutputStream(
-						StreamReference.INITIAL_BUFFER_SIZE);
-				// Copy the inout stream to the byte array
-				this.copyInputStreamToOutput(inputStreamFromServer, outputByteArrayStream);
-				// Provide a stream around the byte array
-				this.inputStream = new java.io.ByteArrayInputStream(outputByteArrayStream.toByteArray());
-			}
-		} catch (IOException ioException) {
-			Context.getCurrentLogger().log(Level.WARNING,
-					"IO Exception while retrieving the blocking streaming data: " + ioException.getMessage(),
-					ioException);
-			throw ioException;
-		}
-		return this.inputStream;
-	}
-
-	/**
-	 * Gets the non blocking input stream.
-	 * 
-	 * @param service
-	 *            the service
-	 * @return the non blocking input stream
-	 * @throws Exception
-	 *             the exception
-	 */
-	public InputStream getNonBlockingInputStream(Service service) throws Exception {
-		try {
-			ClientResource clientResource = service.createResource(this);
-			Representation representation = clientResource.get();
-			if (representation != null) {
 				// Provide a stream based on what is returned by the server
 				this.inputStream = representation.getStream();
 			}
-		} catch (Exception exception) {
-			Context.getCurrentLogger().log(Level.WARNING,
-					"Exception while retrieving the non blocking streaming data: " + exception.getMessage(), exception);
-			throw exception;
+		} catch (IOException ioException) {
+			Context.getCurrentLogger().log(
+					Level.WARNING,
+					"Exception while retrieving the non blocking streaming data: "
+							+ ioException.getMessage(), ioException);
+			throw ioException;
 		}
 		return this.inputStream;
-	}
-
-	/**
-	 * Copy input stream to output.
-	 * 
-	 * @param inputStream
-	 *            the input stream
-	 * @param outStream
-	 *            the out stream
-	 * @return the long
-	 * @throws IOException
-	 *             Signals that an I/O exception has occurred.
-	 */
-	private void copyInputStreamToOutput(InputStream inputStream, OutputStream outStream) throws IOException {
-		byte[] buf = new byte[StreamReference.COPY_BUFFER_SIZE];
-		try {
-			int n;
-			while ((n = inputStream.read(buf)) != -1) {
-				outStream.write(buf, 0, n);
-			}
-		} catch (IOException ioException) {
-			throw ioException;
-		} finally {
-			try {
-				outStream.flush();
-				inputStream.close();
-			} catch (IOException e) {
-			}
-		}
 	}
 
 	/**
