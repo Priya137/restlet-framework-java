@@ -90,6 +90,12 @@ public class ${className} extends org.restlet.ext.odata.Service {
         this.functionContentHandler = functionContentHandler;
         super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
     }
+    
+    public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs, FunctionContentHandler functionContentHandler) {
+        super(serviceUrl);
+        this.functionContentHandler = functionContentHandler;
+        super.setCredentials(new ChallengeResponse(cs, userName, password));
+    }
 
 <#list entityContainer.entities as entitySet>
     <#assign type=entitySet.type>
