@@ -361,7 +361,7 @@ public class EntryContentHandler<T> extends EntryReader {
                                     Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
                                     if(TypeUtils.getCollectionType(currentMType).toLowerCase().startsWith("edm")){
                                         Object value = TypeUtils.convert(listClass, sb.toString());
-                                        ((List)o).add(value);
+                                        ((List<Object>)o).add(value);
 	                            	} else { // TODO: Onkar - Complex Property
 	                            		/*obj = listClass.newInstance();
 	                            		ReflectUtils.invokeSetter(obj, propertyPath.get(propertyPath.size() - 1),
