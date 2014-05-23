@@ -55,9 +55,10 @@ import org.restlet.resource.ClientResource;
 import org.restlet.util.Series;
 
 /**
- * Implements the HTTP Negotiate helper for form based authentication.
- * It will submit the username/password passed as credentials from consumer to default action url.
- * Once user is authenticated then we add the cookies sent by server to request object.
+ * Implements the HTTP Negotiate helper for form based authentication. It will
+ * submit the username/password passed as credentials from consumer to default
+ * action url. Once user is authenticated then we add the cookies sent by server
+ * to request object.
  * 
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  */
@@ -65,13 +66,13 @@ public class HttpNegotiateHelper extends AuthenticatorHelper {
 
 	/** The action url where form needs to submitted. */
 	public static String ACTION_URL = "/j_security_check";
-	
-	/** The field name of username input box.  */
+
+	/** The field name of username input box. */
 	public static String USERNAME = "j_username";
-	
+
 	/** The field name of password input box. */
 	public static String PASSWORD = "j_password";
-	
+
 	/**
 	 * Constructor.
 	 */
@@ -79,6 +80,18 @@ public class HttpNegotiateHelper extends AuthenticatorHelper {
 		super(ChallengeScheme.HTTP_NEGOTIATE, true, true);
 	}
 
+	/**
+	 * This method submits the form to {ACTION_URL} as defined to authenticate
+	 * the request. <br />
+	 * Once credentials are validated, the server will send out the 302 Response
+	 * with "JSESSIONID" & "JSESSIONIDSSO" cookies. <br />
+	 * We set these cookies into request header for subsequent operations.
+	 * 
+	 * @see org.restlet.engine.security.AuthenticatorHelper#formatResponse(org.restlet.engine.header.ChallengeWriter,
+	 *      org.restlet.data.ChallengeResponse, org.restlet.Request,
+	 *      org.restlet.util.Series)
+	 * 
+	 */
 	@Override
 	public void formatResponse(ChallengeWriter cw, ChallengeResponse challenge,
 			Request request, Series<Header> httpHeaders) {
@@ -87,9 +100,10 @@ public class HttpNegotiateHelper extends AuthenticatorHelper {
 					"No challenge provided, unable to encode credentials");
 		} else {
 			Reference resourceRef = request.getResourceRef();
-			String relativeURL = resourceRef.toString().substring(0, resourceRef.toString().lastIndexOf("/"));
-			ClientResource loginCr = new ClientResource(
-					relativeURL + ACTION_URL);
+			String relativeURL = resourceRef.toString().substring(0,
+					resourceRef.toString().lastIndexOf("/"));
+			ClientResource loginCr = new ClientResource(relativeURL
+					+ ACTION_URL);
 			Form loginForm = new Form();
 			loginForm.add(USERNAME, challenge.getIdentifier());
 			loginForm.add(PASSWORD, new String(challenge.getSecret()));
@@ -116,11 +130,19 @@ public class HttpNegotiateHelper extends AuthenticatorHelper {
 		}
 	}
 
+	/**
+	 * For "Negotiate" we are not currently using this API but we might use it
+	 * in future if we need to set the credentials to ChallengeResponse
+	 * 
+	 * @see org.restlet.engine.security.AuthenticatorHelper#parseResponse(org.restlet.data.ChallengeResponse,
+	 *      org.restlet.Request, org.restlet.util.Series)
+	 * 
+	 */
 	@Override
 	public void parseResponse(ChallengeResponse challenge, Request request,
 			Series<Header> httpHeaders) {
 		try {
-			// TODO: Check if Negotiate auth header uses Base64 encoding
+			// Check if Negotiate auth header uses Base64 encoding
 			byte[] credentialsEncoded = Base64.decode(challenge.getRawValue());
 
 			if (credentialsEncoded == null) {
