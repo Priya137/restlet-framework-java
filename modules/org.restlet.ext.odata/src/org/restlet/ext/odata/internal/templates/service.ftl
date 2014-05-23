@@ -41,6 +41,8 @@ import org.restlet.ext.odata.Query;
 import org.restlet.representation.Representation;
 import org.restlet.resource.ClientResource;
 import org.restlet.resource.ResourceException;
+import org.restlet.data.ChallengeScheme;
+import org.restlet.data.ChallengeResponse;
 import org.restlet.data.Parameter;
 import org.restlet.util.Series;
 import com.google.gson.Gson;
@@ -67,18 +69,32 @@ public class ${className} extends org.restlet.ext.odata.Service {
 
     FunctionContentHandler functionContentHandler;
 
-    /**
-     * Constructor.
-     * 
-     */
-    public ${className}() {
-        super("${dataServiceUri}");
+   /**
+    * Constructor.
+    * 
+    */
+    public ${className}(String serviceUrl, String userName, String password) {
+        super(serviceUrl);
         this.functionContentHandler = new JsonContentFunctionHandler();
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
     }
     
-    public ${className}(FunctionContentHandler functionContentHandler) {
-        super("${dataServiceUri}");
+    public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs) {
+        super(serviceUrl);
         this.functionContentHandler = functionContentHandler;
+        super.setCredentials(new ChallengeResponse(cs, userName, password));
+    }
+    
+    public ${className}(String serviceUrl, String userName, String password, FunctionContentHandler functionContentHandler) {
+        super(serviceUrl);
+        this.functionContentHandler = functionContentHandler;
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
+    }
+    
+    public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs, FunctionContentHandler functionContentHandler) {
+        super(serviceUrl);
+        this.functionContentHandler = functionContentHandler;
+        super.setCredentials(new ChallengeResponse(cs, userName, password));
     }
 
 <#list entityContainer.entities as entitySet>
