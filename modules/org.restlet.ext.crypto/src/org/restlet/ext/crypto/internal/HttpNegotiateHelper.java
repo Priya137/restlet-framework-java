@@ -99,8 +99,13 @@ public class HttpNegotiateHelper extends AuthenticatorHelper {
 			throw new RuntimeException(
 					"No challenge provided, unable to encode credentials");
 		} else {
-			// Submit the form only iff we dont have any cookies set in the request
-			if(request.getCookies().size() == 0){
+			/*
+			 * Submit the form only if we dont have any cookies set in the request.
+			 * For first /$metadata request, it wont have cookies, so it will submit the form and cookies are cached.
+			 * Double check if cached cookies really has JSESSIONID/JSESSIONIDSSO, if not then submit the form again.
+			 */
+			if(request.getCookies().size() == 0 || 
+					(request.getCookies().getFirst("JSESSIONID") == null || request.getCookies().getFirst("JSESSIONIDSSO") == null)){
 				Reference resourceRef = request.getResourceRef();
 				String relativeURL = resourceRef.toString().substring(0,
 						resourceRef.toString().lastIndexOf("/"));
