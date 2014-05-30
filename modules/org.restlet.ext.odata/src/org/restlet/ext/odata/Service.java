@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -52,6 +53,7 @@ import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.CharacterSet;
+import org.restlet.data.Cookie;
 import org.restlet.data.MediaType;
 import org.restlet.data.Parameter;
 import org.restlet.data.Preference;
@@ -164,6 +166,9 @@ public class Service {
 
 	/** The isUpdateStreamData used to decide update operation on stream. */
 	private boolean isUpdateStreamData;	
+	
+	/** List of cookies used to cache the cookies sent from server. */
+	List<Cookie> cookies;
 
     /**
      * Constructor.
@@ -365,6 +370,11 @@ public class Service {
         if (clientConnector != null) {
             // We provide our own cient connector.
             resource.setNext(clientConnector);
+        }
+        
+        // add the cached cookies to request to prevent submitting the form in form based auth.
+        if(this.cookies != null){
+        	resource.getRequest().getCookies().addAll(this.cookies);
         }
 
         resource.setChallengeResponse(getCredentials());
@@ -571,6 +581,14 @@ public class Service {
                         "Get the metadata for " + getServiceRef() + " at "
                                 + resource.getReference());
                 Representation rep = resource.get(MediaType.APPLICATION_XML);
+                // after metadata request is handled by submitting the form, get the cookies from response and cache it.
+                Series<Cookie> responseCookies = resource.getResponse().getRequest().getCookies();
+                if(responseCookies != null){
+                	if(this.cookies == null){
+                		this.cookies = new ArrayList<Cookie>();
+                	}
+                	this.cookies.addAll(responseCookies);
+                }
                 this.metadata = new Metadata(rep, resource.getReference());
             } catch (ResourceException e) {
                 getLogger().log(

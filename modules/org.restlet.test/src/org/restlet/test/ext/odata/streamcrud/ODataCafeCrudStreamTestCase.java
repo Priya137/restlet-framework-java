@@ -3,6 +3,7 @@ package org.restlet.test.ext.odata.streamcrud;
 
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import junit.framework.Assert;
@@ -82,7 +83,12 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
         assertEquals(111111, cafe1.getZipCode());
         attachment = cafe1.getAttachment();  
         assertEquals(contentType, attachment.getContentType());
-        inputStream=  attachment.getInputStream(service);
+        try {
+			inputStream=  attachment.getInputStream(service);
+		} catch (IOException e) {
+			e.printStackTrace();
+			Assert.fail();
+		}
         assertNotNull(inputStream);   
         
        
@@ -115,7 +121,12 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
 		assertEquals(111111, cafe2.getZipCode());
 		attachment = cafe2.getAttachment();
 		assertEquals(contentType, attachment.getContentType());
-		inputStream = attachment.getInputStream(service);
+		try {
+			inputStream = attachment.getInputStream(service);
+		} catch (IOException e) {
+			e.printStackTrace();
+			Assert.fail();
+		}
 		assertNotNull(inputStream);
 
 		// Delete
