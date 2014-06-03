@@ -99,33 +99,41 @@ public class HttpNegotiateHelper extends AuthenticatorHelper {
 			throw new RuntimeException(
 					"No challenge provided, unable to encode credentials");
 		} else {
-			Reference resourceRef = request.getResourceRef();
-			String relativeURL = resourceRef.toString().substring(0,
-					resourceRef.toString().lastIndexOf("/"));
-			ClientResource loginCr = new ClientResource(relativeURL
-					+ ACTION_URL);
-			Form loginForm = new Form();
-			loginForm.add(USERNAME, challenge.getIdentifier());
-			loginForm.add(PASSWORD, new String(challenge.getSecret()));
-			loginCr.post(loginForm);
-			Response response = loginCr.getResponse();
-			// check if we get 302 response status; then only add the cookies
-			// else throw exception
-			if (response.getStatus().equals(Status.REDIRECTION_FOUND)
-					|| response.getStatus()
-							.equals(Status.REDIRECTION_PERMANENT)) {
-				Series<CookieSetting> cookieSetting = loginCr
-						.getCookieSettings();
-				for (CookieSetting cs : cookieSetting) {
-					request.getCookies().add(cs.getName(), cs.getValue());
+			/*
+			 * Submit the form only if we dont have any cookies set in the request.
+			 * For first /$metadata request, it wont have cookies, so it will submit the form and cookies are cached.
+			 * Double check if cached cookies really has JSESSIONID/JSESSIONIDSSO, if not then submit the form again.
+			 */
+			if(request.getCookies().size() == 0 || 
+					(request.getCookies().getFirst("JSESSIONID") == null || request.getCookies().getFirst("JSESSIONIDSSO") == null)){
+				Reference resourceRef = request.getResourceRef();
+				String relativeURL = resourceRef.toString().substring(0,
+						resourceRef.toString().lastIndexOf("/"));
+				ClientResource loginCr = new ClientResource(relativeURL
+						+ ACTION_URL);
+				Form loginForm = new Form();
+				loginForm.add(USERNAME, challenge.getIdentifier());
+				loginForm.add(PASSWORD, new String(challenge.getSecret()));
+				loginCr.post(loginForm);
+				Response response = loginCr.getResponse();
+				// check if we get 302 response status; then only add the cookies
+				// else throw exception
+				if (response.getStatus().equals(Status.REDIRECTION_FOUND)
+						|| response.getStatus()
+								.equals(Status.REDIRECTION_PERMANENT)) {
+					Series<CookieSetting> cookieSetting = loginCr
+							.getCookieSettings();
+					for (CookieSetting cs : cookieSetting) {
+						request.getCookies().add(cs.getName(), cs.getValue());
+					}
+					// finally add all the cookies in header
+					HeaderUtils.addHeader(HeaderConstants.HEADER_COOKIE,
+							CookieWriter.write(request.getCookies()), httpHeaders);
+				} else {
+					throw new RuntimeException(
+							"Can't authorize the request with passed credentials. "
+									+ "Please check if you are passing correct credentials");
 				}
-				// finally add all the cookies in header
-				HeaderUtils.addHeader(HeaderConstants.HEADER_COOKIE,
-						CookieWriter.write(request.getCookies()), httpHeaders);
-			} else {
-				throw new RuntimeException(
-						"Can't authorize the request with passed credentials. "
-								+ "Please check if you are passing correct credentials");
 			}
 		}
 	}
