@@ -42,14 +42,8 @@ public class DeleteEntityRequest extends RestletBatchRequest {
 
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.batch.request.RestletBatchRequest#format(java.lang
-	 * .String)
-	 */
-	public String format(String formatType) {
+	
+	public String format(MediaType formatType) {
 		ClientResource cr = getClientResource(this.entitySubPath);
 
 		return RestletBatchRequestHelper.formatSingleRequest(cr.getRequest(),

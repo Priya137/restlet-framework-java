@@ -42,31 +42,19 @@ public class BatchResponseImpl implements BatchResponse {
 		this.headers = batchHeaders;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.response.BatchResponse#getEntity()
-	 */
+	
 	@Override
 	public Object getEntity() {
 		return entity;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.response.BatchResponse#getStatus()
-	 */
+	
 	@Override
 	public int getStatus() {
 		return status;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.response.BatchResponse#getHeaders()
-	 */
+	
 	@Override
 	public MultivaluedMap<String, String> getHeaders() {
 		return headers;

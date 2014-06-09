@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.restlet.ext.odata.batch.response;
 
 /**

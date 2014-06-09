@@ -1,5 +1,7 @@
 package org.restlet.ext.odata.batch.request;
 
+import org.restlet.data.MediaType;
+
 /**
  * The Interface ClientBatchRequest forms the base interface for all types of
  * requests like CRUD and changeset requests.
@@ -18,6 +20,6 @@ public interface ClientBatchRequest {
 	 *            the format type
 	 * @return the string
 	 */
-	public String format(String formatType);
+	public String format(MediaType formatType);
 
 }

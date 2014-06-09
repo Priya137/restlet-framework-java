@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +52,8 @@ public class RestletBatchRequestHelper {
 	/**
 	 * Format single request.
 	 * 
+	 * Creates a String out of the request and the format type provided.
+	 * 
 	 * @param req
 	 *            the req
 	 * @param formatType
@@ -60,15 +61,15 @@ public class RestletBatchRequestHelper {
 	 * @return the string
 	 */
 	public static String formatSingleRequest(Request req, MediaType formatType) {
-		StringBuilder sb = new StringBuilder();
-
-		// allow the client to override the default format writer content-type
+		
+		StringBuilder sb = new StringBuilder();		
 		boolean userDefinedContentType = false;
 		sb.append(HeaderConstants.HEADER_CONTENT_TYPE).append(": ");
-		sb.append(MediaType.APPLICATION_ALL).append("\r\n");
+		
+		sb.append(MediaType.APPLICATION_ALL).append(BatchConstants.NEW_LINE);
 		sb.append(HeaderConstants.HEADER_TRANSFER_ENCODING).append(": ")
-				.append("Binary").append("\r\n");
-		sb.append("\r\n");
+				.append("Binary").append(BatchConstants.NEW_LINE);
+		sb.append(BatchConstants.NEW_LINE);
 
 		Reference resourceRef = req.getResourceRef();
 		String url = resourceRef.getIdentifier();
@@ -80,8 +81,9 @@ public class RestletBatchRequestHelper {
 		if (!userDefinedContentType
 				&& !(req.getMethod().equals(Method.GET) || req.getMethod()
 						.equals(Method.DELETE))) {
+			
 			sb.append(HeaderConstants.HEADER_CONTENT_TYPE).append(": ")
-					.append(formatType + ";charset=utf-8").append("\r\n");
+					.append(formatType + BatchConstants.FORMAT_TYPE_CHARSET_UTF8).append(BatchConstants.NEW_LINE);
 		}
 
 		return sb.toString();
@@ -89,6 +91,12 @@ public class RestletBatchRequestHelper {
 
 	/**
 	 * Validate and return entity set name.
+	 * 
+	 * This method validates if a entityType of the entityClass exists in the metadata for the given service.
+	 * 
+	 * If exists then returns the EntitySetName
+	 * <br>else throws an exception.
+	 * 
 	 * 
 	 * @param service
 	 *            the service
@@ -102,42 +110,17 @@ public class RestletBatchRequestHelper {
 			Class<?> entityClass) throws Exception {
 		Object object = null;
 		try {
-			object = getMetadataUsingRelection(service);
+			object = service.getMetadata();
 			return ((Metadata) object).getEntityType(entityClass).getName();
 		} catch (SecurityException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new Exception("Can't add entity to this entity set "
 					+ entityClass.getName()
-					+ " due to the lack of the service's metadata.");
+					+ " due to  lack of the service's metadata.");
 		}
 	}
-
-	/**
-	 * Gets the metadata using relection.
-	 * 
-	 * @param service
-	 *            the service
-	 * @return the metadata using relection
-	 * @throws NoSuchMethodException
-	 *             the no such method exception
-	 * @throws IllegalAccessException
-	 *             the illegal access exception
-	 * @throws InvocationTargetException
-	 *             the invocation target exception
-	 */
-	private static Object getMetadataUsingRelection(Service service)
-			throws NoSuchMethodException, IllegalAccessException,
-			InvocationTargetException {
-		Object object;
-		java.lang.reflect.Method declaredMethod;
-		declaredMethod = service.getClass().getSuperclass()
-				.getDeclaredMethod(BatchConstants.GETMETADATA);
-		declaredMethod.setAccessible(true);
-		object = declaredMethod.invoke(service);
-		return object;
-	}
-
+	
 	/**
 	 * Gets the entity sub path.
 	 * 
@@ -153,7 +136,7 @@ public class RestletBatchRequestHelper {
 			throws Exception {
 		Object object = null;
 		try {
-			object = getMetadataUsingRelection(service);
+			object = service.getMetadata();
 			return ((Metadata) object).getSubpath(entity).replace("/", "");
 		} catch (SecurityException e) {
 			throw e;
@@ -172,7 +155,7 @@ public class RestletBatchRequestHelper {
 	 * @return the string representation
 	 */
 	public static StringRepresentation getStringRepresentation(Service service,
-			String entitySetName, Entry entry) {
+			String entitySetName, Entry entry,MediaType type) {
 		if (entry != null) {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			try {
@@ -182,8 +165,7 @@ public class RestletBatchRequestHelper {
 				new RuntimeException("IOException during creating a string representation"+ e);
 			}
 
-			StringRepresentation r = new StringRepresentation(baos.toString(),
-					MediaType.APPLICATION_ATOM);
+			StringRepresentation r = new StringRepresentation(baos.toString(),type);
 			return r;
 		}
 		return null;
@@ -191,6 +173,9 @@ public class RestletBatchRequestHelper {
 
 	/**
 	 * Parses the single operation response.
+	 * 
+	 * This method parses the response for a single request within the changeset or a singel GET request.
+	 * <br> Then creates a batch response and populates the entity by parsing the response output.
 	 * 
 	 * @param topVersion
 	 *            the top version
@@ -237,7 +222,7 @@ public class RestletBatchRequestHelper {
 			}
 
 			Object result = null;
-			if (inboundHeaders.containsKey(BatchConstants.CONTENTTYPE)) {
+			if (inboundHeaders.containsKey(BatchConstants.HTTP_HEADER_CONTENT_TYPE)) {
 				if (so instanceof CreateEntityRequest
 						|| so instanceof GetEntityRequest) {
 					BatchProperty bp = (BatchProperty) so;
@@ -261,6 +246,8 @@ public class RestletBatchRequestHelper {
 
 	/**
 	 * Parses the change set response.
+	 * <br>This method parses the response and from within parses each request within the changeset 
+	 * <br> and creates a complete changeset response out of it.
 	 * 
 	 * @param oDataVersion
 	 *            the o data version
@@ -292,7 +279,7 @@ public class RestletBatchRequestHelper {
 	}
 
 	/**
-	 * Gets the entity.
+	 * Gets the entity by parsing the representation using the feedhandler sent as a parameter.
 	 * 
 	 * @param <T>
 	 *            the generic type
@@ -312,7 +299,7 @@ public class RestletBatchRequestHelper {
 		return feedHandler.getEntities().get(0);
 	}
 
-	// convert InputStream to String
+	
 	/**
 	 * Gets the string from input stream.
 	 * 
@@ -346,6 +333,9 @@ public class RestletBatchRequestHelper {
 	/**
 	 * Creates the multipart.
 	 * 
+	 * A Multipart is a logical representation of a batch request or Chnagset.
+	 * <br> It is a set of multiple http requests/response. 
+	 * 
 	 * @param is
 	 *            the is
 	 * @param mediaType
@@ -362,7 +352,7 @@ public class RestletBatchRequestHelper {
 		multipart.setMediaType(mediaType);
 
 		MIMEMessage mimeMessage = new MIMEMessage(is, mediaType.getParameters()
-				.getFirstValue(BatchConstants.BOUNDARY));
+				.getFirstValue(BatchConstants.BATCH_BOUNDARY));
 		List<MIMEPart> attachments = mimeMessage.getAttachments();
 		for (MIMEPart mimePart : attachments) {
 			BodyPart bodyPart = new BodyPart(mimePart);
@@ -370,7 +360,7 @@ public class RestletBatchRequestHelper {
 			copyHeaders(bodyPart, mimePart);
 			// bodyPart.setContentDisposition(mimePart.getHeader("Content-disposition").get(0));
 			bodyPart.setMediaType(new MediaType(bodyPart.getHeaders().getFirst(
-					BatchConstants.CONTENTTYPE)));
+					BatchConstants.HTTP_HEADER_CONTENT_TYPE)));
 			multipart.addBodyParts(bodyPart);
 
 		}

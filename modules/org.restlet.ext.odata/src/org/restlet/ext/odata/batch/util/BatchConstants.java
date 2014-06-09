@@ -1,34 +1,38 @@
-/**
- * 
- */
 package org.restlet.ext.odata.batch.util;
 
 /**
- * Class to hold constants for Restlet batch implementation.
+ * Interface to hold constants for Restlet batch implementation.
  * 
  * copyright 2014 Halliburton
  * 
  * @author <a href="mailto:Amit.Jahagirdar@synerzip.com">Amit.Jahagirdar</a>
  * 
  */
-public class BatchConstants {
+public interface BatchConstants {
 
 	/** The Constant BATCH_ENDPOINT_URI. */
-	public static final String BATCH_ENDPOINT_URI = "$batch";
+	String BATCH_ENDPOINT_URI = "$batch";
 
-	public static final String ODATAVERSION = "V3";
+	String ODATA_VERSION_V3 = "V3";
 
-	public static final String CONTENTTYPE = "Content-Type";
+	String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
 
-	public static final String GETMETADATA = "getMetadata";
+	String GET_METADATA = "getMetadata";
 
-	public static final String BOUNDARY = "boundary";
+	String BATCH_BOUNDARY = "boundary";
 
 	/** The Constant STATUS. */
-	public static final int STATUS = 200;
+	int HTTP_STATUS_OK = 200;
 
-	public static final String CHANGESET = "changeset_";
+	 String CHANGESET_UNDERSCORE = "changeset_";
 
-	public static final String BATCH_UNDERSCORE = "batch_";
+	 String BATCH_UNDERSCORE = "batch_";
 
+	 String NEW_LINE = System.getProperty("line.separator");
+	
+	 String NEW_LINE_BATCH_START = new StringBuilder().append(NEW_LINE).append("--").toString();
+	
+	 String NEW_LINE_BATCH_END = new StringBuilder().append("--").append(NEW_LINE).toString();
+	
+	 String FORMAT_TYPE_CHARSET_UTF8 = ";charset=utf-8";
 }

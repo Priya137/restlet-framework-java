@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.restlet.ext.odata.batch.request.impl;
 
 import org.restlet.data.Method;
@@ -120,20 +117,12 @@ public abstract class RestletBatchRequest implements BatchProperty {
 		this.service = service;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.request.BatchProperty#getEntityType()
-	 */
+	
 	public EntityType getEntityType() {
 		return entityType;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.request.BatchProperty#getMethod()
-	 */
+	
 	public Method getMethod() {
 		return method;
 	}
@@ -148,11 +137,7 @@ public abstract class RestletBatchRequest implements BatchProperty {
 		this.method = method;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.request.BatchProperty#getEntitySetName()
-	 */
+	
 	public String getEntitySetName() {
 		return entitySetName;
 	}

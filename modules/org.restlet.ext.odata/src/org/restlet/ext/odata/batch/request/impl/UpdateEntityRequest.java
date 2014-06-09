@@ -42,18 +42,13 @@ public class UpdateEntityRequest extends RestletBatchRequest {
 		this.entitySubPath = RestletBatchRequestHelper.getEntitySubPath(
 				service, entity);
 	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.batch.RestletBatchRequest#format(java.lang.String)
-	 */
-	public String format(String formatType) {
+	
+	
+	public String format(MediaType formatType) {
 		ClientResource cr = getClientResource(this.entitySubPath);
 		StringRepresentation strRepresent = RestletBatchRequestHelper
 				.getStringRepresentation(this.getService(),
-						this.getEntitySetName(), this.entry);
+						this.getEntitySetName(), this.entry,MediaType.APPLICATION_ATOM);
 		StringBuilder sb = new StringBuilder();
 		sb.append(RestletBatchRequestHelper.formatSingleRequest(
 				cr.getRequest(), MediaType.APPLICATION_ATOM));

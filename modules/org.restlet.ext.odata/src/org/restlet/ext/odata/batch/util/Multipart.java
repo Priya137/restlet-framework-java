@@ -6,7 +6,7 @@ import java.util.List;
 import org.jvnet.mimepull.MIMEPart;
 import org.restlet.data.MediaType;
 
-// TODO: Auto-generated Javadoc
+
 /**
  * The Class Multipart is logical representation of the multipart batch request.
  * 
@@ -59,13 +59,7 @@ public class Multipart extends BodyPart {
 		this.bodyParts.add(bodyPart);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.multipart.BodyPart#setMediaType(org.restlet.data
-	 * .MediaType)
-	 */
+	
 	@Override
 	public void setMediaType(MediaType mediaType) {
 

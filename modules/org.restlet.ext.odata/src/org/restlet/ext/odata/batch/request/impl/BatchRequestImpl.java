@@ -52,42 +52,79 @@ public class BatchRequestImpl implements BatchRequest {
 		this.service = service;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.batch.request.BatchRequest#addRequest(org.restlet
-	 * .ext.odata.batch.request.impl.GetEntityRequest)
-	 */
+	
 	public BatchRequestImpl addRequest(GetEntityRequest getEntityRequest) {
 		requests.add(getEntityRequest);
 		return this;
 
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.batch.request.BatchRequest#addRequest(org.restlet
-	 * .ext.odata.batch.request.ChangeSetRequest)
-	 */
+	
 	public BatchRequestImpl addRequest(ChangeSetRequest changeSetRequest) {
 		requests.add(changeSetRequest);
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.request.BatchRequest#execute()
-	 */
+	
 	public List<BatchResponse> execute() {
 
+		String batchId = generateBatchId();
+		
 		ClientResource clientResource = service.createResource(new Reference(
 				service.getServiceRef()));
-		clientResource.getRequest().getResourceRef().setLastSegment("");
+		Reference resourceRef = clientResource.getRequest().getResourceRef();
+		
+		//clientResource.getRequest().getResourceRef().setLastSegment("");
 		// create the client Info
+		setClientContext(clientResource, resourceRef);
+		
+		StringBuilder sb = createBatchString(batchId, this.requests);
+		//Finally posting the batch request.
+		Representation r = clientResource.post(new StringRepresentation(sb
+				.toString(), new MediaType(MediaType.MULTIPART_MIXED
+				+ ";boundary=" + batchId)));
+		
+		List<BatchResponse> batchResponses = null;
+		try {
+			batchResponses = parseRepresentation(r, this.requests);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return batchResponses;
+	}
+
+	/**
+	 * Creates the batch request string,which would then be converted into String Representation for further processing.
+	 * 
+	 * @param batchId
+	 * @param list
+	 * @return
+	 */
+	private StringBuilder createBatchString(String batchId,
+			List<ClientBatchRequest> list) {
+		StringBuilder sb = new StringBuilder();
+
+
+		for (ClientBatchRequest restletBatchRequest : list) {
+			if (restletBatchRequest instanceof GetEntityRequest) {
+				sb.append(BatchConstants.NEW_LINE_BATCH_START).append(batchId).append(BatchConstants.NEW_LINE);
+				sb.append(restletBatchRequest.format(MediaType.APPLICATION_ATOM));
+			} else if (restletBatchRequest instanceof ChangeSetRequest) {
+				sb.append(BatchConstants.NEW_LINE_BATCH_START).append(batchId).append(BatchConstants.NEW_LINE);
+				sb.append(restletBatchRequest.format(MediaType.APPLICATION_ATOM));
+			}
+		}
+		sb.append(BatchConstants.NEW_LINE_BATCH_START).append(batchId).append(BatchConstants.NEW_LINE_BATCH_END);
+		return sb;
+	}
+
+	/**
+	 * Sets the client information and the context onto client resource.
+	 * @param clientResource
+	 * @param resourceRef
+	 */
+	private void setClientContext(ClientResource clientResource,
+			Reference resourceRef) {
 		ClientInfo clientInfo = new ClientInfo();
 		clientResource.getRequest().setClientInfo(clientInfo);
 
@@ -96,42 +133,22 @@ public class BatchRequestImpl implements BatchRequest {
 		client.getContext().getParameters()
 				.add("useForwardedForHeader", "false");
 
-		Reference resourceRef = clientResource.getRequest().getResourceRef();
+		
 		clientResource.getRequest().setResourceRef(
 				new Reference(resourceRef.getTargetRef()
 						+ BatchConstants.BATCH_ENDPOINT_URI));
 		clientResource.getRequest().setMethod(Method.POST);
 		clientResource.setNext(client);
+	}
 
+	/**
+	 * Generates a unique batch Id for each batch request.
+	 * @return
+	 */
+	private String generateBatchId() {
 		String batchId = BatchConstants.BATCH_UNDERSCORE
 				+ UUID.randomUUID().toString();
-		StringBuilder sb = new StringBuilder();
-		List<ClientBatchRequest> list = this.requests;
-
-		for (ClientBatchRequest restletBatchRequest : list) {
-			if (restletBatchRequest instanceof GetEntityRequest) {
-				sb.append("\n--").append(batchId).append("\n");
-				sb.append(restletBatchRequest.format(MediaType.APPLICATION_ATOM
-						.toString()));
-			} else if (restletBatchRequest instanceof ChangeSetRequest) {
-				sb.append("\n--").append(batchId).append("\n");
-				sb.append(restletBatchRequest.format(MediaType.APPLICATION_ATOM
-						.toString()));
-			}
-		}
-		sb.append("\n--").append(batchId).append("--\n");
-		//Finally posting the batch request.
-		Representation r = clientResource.post(new StringRepresentation(sb
-				.toString(), new MediaType(MediaType.MULTIPART_MIXED
-				+ ";boundary=" + batchId)));
-		
-		List<BatchResponse> batchResponses = null;
-		try {
-			batchResponses = parseRepresentation(r, list);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return batchResponses;
+		return batchId;
 	}
 
 	/**
@@ -173,7 +190,7 @@ public class BatchRequestImpl implements BatchRequest {
 				}
 				ChangeSetRequest csr = (ChangeSetRequest) list.get(i);
 				bResponse = RestletBatchRequestHelper.parseChangeSetResponse(
-						BatchConstants.ODATAVERSION, contentList, csr,
+						BatchConstants.ODATA_VERSION_V3, contentList, csr,
 						mediaType, service);
 			} else {
 				ClientBatchRequest batchRequestOfTypeGet = list.get(i);
@@ -181,7 +198,7 @@ public class BatchRequestImpl implements BatchRequest {
 						.getStringFromInputStream(bp.getInputStream());
 				bResponse = RestletBatchRequestHelper
 						.parseSingleOperationResponse(
-								BatchConstants.ODATAVERSION, content,
+								BatchConstants.ODATA_VERSION_V3, content,
 								batchRequestOfTypeGet, bp.getMediaType(),
 								service);
 			}

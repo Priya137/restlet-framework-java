@@ -98,7 +98,6 @@ public class BodyPart implements Closeable {
 	 * @return the content disposition
 	 */
 	public String getContentDisposition() {
-		// TODO: based on headers, retrieve the content disposition.
 		return contentDisposition;
 	}
 

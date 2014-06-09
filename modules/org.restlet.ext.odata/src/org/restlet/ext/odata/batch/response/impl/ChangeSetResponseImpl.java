@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.restlet.ext.odata.batch.response.impl;
 
 import java.util.ArrayList;
@@ -28,45 +25,27 @@ public class ChangeSetResponseImpl implements ChangeSetResponse {
 	List<BatchResponse> responses = new ArrayList<BatchResponse>();
 
 	/** The status. */
-	int status = BatchConstants.STATUS;
+	int status = BatchConstants.HTTP_STATUS_OK;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.response.BatchResponse#getEntity()
-	 */
+	
 	@Override
 	public Object getEntity() {
 		return responses;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.response.BatchResponse#getStatus()
-	 */
+	
 	@Override
 	public int getStatus() {
 		return status;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.restlet.ext.odata.batch.response.BatchResponse#getHeaders()
-	 */
+	
 	@Override
 	public MultivaluedMap<String, String> getHeaders() {
 		return null;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.batch.response.ChangeSetResponse#add(org.restlet
-	 * .ext.odata.batch.response.BatchResponse)
-	 */
+	
 	@Override
 	public void add(BatchResponse singleResponse) {
 		responses.add(singleResponse);

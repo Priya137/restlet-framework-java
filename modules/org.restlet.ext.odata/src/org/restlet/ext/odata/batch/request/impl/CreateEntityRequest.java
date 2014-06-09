@@ -5,6 +5,7 @@ import org.restlet.data.Method;
 import org.restlet.engine.header.HeaderConstants;
 import org.restlet.ext.atom.Entry;
 import org.restlet.ext.odata.Service;
+import org.restlet.ext.odata.batch.util.BatchConstants;
 import org.restlet.ext.odata.batch.util.RestletBatchRequestHelper;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -38,26 +39,20 @@ public class CreateEntityRequest extends RestletBatchRequest {
 		this.entry = service.toEntry(entity);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.restlet.ext.odata.batch.request.RestletBatchRequest#format(java.lang
-	 * .String)
-	 */
-	public String format(String formatType) {
+	
+	public String format(MediaType formatType) {
 		ClientResource cr = getClientResource(this.getEntitySetName());
 		StringRepresentation strRepresent = RestletBatchRequestHelper
 				.getStringRepresentation(this.getService(),
-						this.getEntitySetName(), this.entry);
+						this.getEntitySetName(), this.entry,MediaType.APPLICATION_ATOM);
 		StringBuilder sb = new StringBuilder();
 		sb.append(RestletBatchRequestHelper.formatSingleRequest(
 				cr.getRequest(), MediaType.APPLICATION_ATOM));
 		// set content-length
 		sb.append(HeaderConstants.HEADER_CONTENT_LENGTH).append(": ")
-				.append(strRepresent.getSize()).append("\r\n");
-		sb.append("\r\n\r\n");
-		sb.append(strRepresent.getText()).append("\r\n");
+				.append(strRepresent.getSize()).append(BatchConstants.NEW_LINE);
+		sb.append(BatchConstants.NEW_LINE).append(BatchConstants.NEW_LINE);
+		sb.append(strRepresent.getText()).append(BatchConstants.NEW_LINE);
 		return sb.toString();
 	}	
 

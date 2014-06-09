@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.restlet.ext.odata.batch.response;
 
 import javax.ws.rs.core.MultivaluedMap;
