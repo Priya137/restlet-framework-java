@@ -51,6 +51,8 @@ import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.FunctionContentHandler;
 import org.restlet.ext.odata.internal.JsonContentFunctionHandler;
 import org.restlet.ext.odata.internal.AtomContentFunctionHandler;
+import org.restlet.ext.odata.batch.request.BatchRequest;
+import org.restlet.ext.odata.batch.request.impl.BatchRequestImpl;
 
 <#list entityContainer.entities?sort as entitySet>
 import ${entitySet.type.fullClassName};
@@ -104,10 +106,13 @@ public class ${className} extends org.restlet.ext.odata.Service {
      * 
      * @param entity
      *            The entity to add to the service.
+     * @return generic object of Type T.
+     * 			The newly created entity.
+     *	
      * @throws Exception 
      */
-    public void addEntity(${type.fullClassName} entity) throws Exception {
-        <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
+    public <T> T addEntity(${type.fullClassName} entity) throws Exception {
+        return <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
     }
 
     /**
@@ -195,6 +200,15 @@ public class ${className} extends org.restlet.ext.odata.Service {
 
         return null;
     }
+    
+     /**
+     * Returns the instance of BatchRequestImpl for batch requests.
+     * 
+     * @return The reference of the binary representation of the given entity.
+     */
+   	public BatchRequest createBatchRequest(){
+		return new BatchRequestImpl(this);
+	}
 
     /**
      * Sets the value of the given media entry link.
