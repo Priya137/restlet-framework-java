@@ -18,7 +18,7 @@ public class HeaderMap extends HashMap<String, List<String>> implements
 		MultivaluedMap<String, String> {
 
 	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -913599179728662269L;
 
 	@Override
 	public void putSingle(String key, String value) {

@@ -52,29 +52,37 @@ public class BatchRequestImpl implements BatchRequest {
 		this.service = service;
 	}
 
-	
-	public BatchRequestImpl addRequest(GetEntityRequest getEntityRequest) {
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.BatchRequest#addRequest(org.restlet.ext.odata.batch.request.impl.GetEntityRequest)
+	 */
+	@Override
+	public BatchRequest addRequest(GetEntityRequest getEntityRequest) {
 		requests.add(getEntityRequest);
 		return this;
 
 	}
 
-	
-	public BatchRequestImpl addRequest(ChangeSetRequest changeSetRequest) {
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.BatchRequest#addRequest(org.restlet.ext.odata.batch.request.ChangeSetRequest)
+	 */
+	@Override
+	public BatchRequest addRequest(ChangeSetRequest changeSetRequest) {
 		requests.add(changeSetRequest);
 		return this;
 	}
 
-	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.BatchRequest#execute()
+	 */
+	@Override
 	public List<BatchResponse> execute() {
 
 		String batchId = generateBatchId();
 		
 		ClientResource clientResource = service.createResource(new Reference(
 				service.getServiceRef()));
-		Reference resourceRef = clientResource.getRequest().getResourceRef();
+		Reference resourceRef = clientResource.getRequest().getResourceRef();		
 		
-		//clientResource.getRequest().getResourceRef().setLastSegment("");
 		// create the client Info
 		setClientContext(clientResource, resourceRef);
 		

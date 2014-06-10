@@ -44,10 +44,14 @@ public class GetEntityRequest extends RestletBatchRequest {
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ClientBatchRequest#format(org.restlet.data.MediaType)
+	 */
+	@Override
 	public String format(MediaType formatType) {
 		ClientResource cr = getClientResource(this.query.getSubpath());
 		return RestletBatchRequestHelper.formatSingleRequest(cr.getRequest(),
-				MediaType.APPLICATION_ATOM);
+				formatType);
 	}
 
 	

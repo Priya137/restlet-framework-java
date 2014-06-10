@@ -314,7 +314,7 @@ public class RestletBatchRequestHelper {
 		try {
 			br = new BufferedReader(new InputStreamReader(is));
 			while ((line = br.readLine()) != null) {
-				sb.append(line).append("\n");
+				sb.append(line).append(BatchConstants.NEW_LINE);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("IOException occured while resding stream"+ e);
@@ -358,7 +358,6 @@ public class RestletBatchRequestHelper {
 			BodyPart bodyPart = new BodyPart(mimePart);
 			// copy headers into bodyparts
 			copyHeaders(bodyPart, mimePart);
-			// bodyPart.setContentDisposition(mimePart.getHeader("Content-disposition").get(0));
 			bodyPart.setMediaType(new MediaType(bodyPart.getHeaders().getFirst(
 					BatchConstants.HTTP_HEADER_CONTENT_TYPE)));
 			multipart.addBodyParts(bodyPart);

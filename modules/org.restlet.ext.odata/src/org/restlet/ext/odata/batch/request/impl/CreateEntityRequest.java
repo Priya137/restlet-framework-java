@@ -39,15 +39,18 @@ public class CreateEntityRequest extends RestletBatchRequest {
 		this.entry = service.toEntry(entity);
 	}
 
-	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ClientBatchRequest#format(org.restlet.data.MediaType)
+	 */
+	@Override
 	public String format(MediaType formatType) {
 		ClientResource cr = getClientResource(this.getEntitySetName());
 		StringRepresentation strRepresent = RestletBatchRequestHelper
 				.getStringRepresentation(this.getService(),
-						this.getEntitySetName(), this.entry,MediaType.APPLICATION_ATOM);
+						this.getEntitySetName(), this.entry,formatType);
 		StringBuilder sb = new StringBuilder();
 		sb.append(RestletBatchRequestHelper.formatSingleRequest(
-				cr.getRequest(), MediaType.APPLICATION_ATOM));
+				cr.getRequest(), formatType));
 		// set content-length
 		sb.append(HeaderConstants.HEADER_CONTENT_LENGTH).append(": ")
 				.append(strRepresent.getSize()).append(BatchConstants.NEW_LINE);

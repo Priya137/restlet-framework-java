@@ -10,6 +10,7 @@ import org.restlet.ext.odata.batch.request.ChangeSetRequest;
 import org.restlet.ext.odata.batch.request.ClientBatchRequest;
 import org.restlet.ext.odata.batch.util.BatchConstants;
 
+
 /**
  * The Class ChangeSetRequestImpl.
  * 
@@ -24,17 +25,29 @@ public class ChangeSetRequestImpl implements ChangeSetRequest {
 	private List<ClientBatchRequest> reqs = new ArrayList<ClientBatchRequest>();
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ChangeSetRequest#addRequest(org.restlet.ext.odata.batch.request.impl.CreateEntityRequest)
+	 */
+	@Override
 	public ChangeSetRequest addRequest(CreateEntityRequest createEntityRequest) {
 		reqs.add(createEntityRequest);
 		return this;
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ChangeSetRequest#getReqs()
+	 */
+	@Override
 	public List<ClientBatchRequest> getReqs() {
 		return reqs;
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ClientBatchRequest#format(org.restlet.data.MediaType)
+	 */
+	@Override
 	public String format(MediaType formatType) {
 
 		StringBuilder sb = new StringBuilder();
@@ -65,6 +78,9 @@ public class ChangeSetRequestImpl implements ChangeSetRequest {
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ChangeSetRequest#addRequest(org.restlet.ext.odata.batch.request.impl.UpdateEntityRequest)
+	 */
 	@Override
 	public ChangeSetRequest addRequest(UpdateEntityRequest updateEntityRequest) {
 		reqs.add(updateEntityRequest);
@@ -72,6 +88,9 @@ public class ChangeSetRequestImpl implements ChangeSetRequest {
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.ChangeSetRequest#addRequest(org.restlet.ext.odata.batch.request.impl.DeleteEntityRequest)
+	 */
 	@Override
 	public ChangeSetRequest addRequest(DeleteEntityRequest deleteEntityRequest) {
 		reqs.add(deleteEntityRequest);

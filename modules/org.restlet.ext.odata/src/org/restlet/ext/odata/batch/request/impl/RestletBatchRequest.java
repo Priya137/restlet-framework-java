@@ -8,6 +8,7 @@ import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.resource.ClientResource;
 
+
 /**
  * Abstract implementation of the RestletBatchRequest interface to handle the
  * mechanism for inferring the entity type from the entity class using the
@@ -37,13 +38,11 @@ public abstract class RestletBatchRequest implements BatchProperty {
 
 	/**
 	 * Instantiates a new restlet batch request impl.
-	 * 
-	 * @param service
-	 *            the service
-	 * @param entityClass
-	 *            the entity class
-	 * @param method
-	 * @throws Exception
+	 *
+	 * @param service the service
+	 * @param entityClass the entity class
+	 * @param method the method
+	 * @throws Exception the exception
 	 */
 	public RestletBatchRequest(Service service, Class<?> entityClass,
 			Method method) throws Exception {
@@ -69,8 +68,8 @@ public abstract class RestletBatchRequest implements BatchProperty {
 	
 	/**
 	 * Gets the client resource.
-	 * @param  
-	 * 
+	 *
+	 * @param relativePath the relative path
 	 * @return the client resource
 	 */
 	public ClientResource getClientResource(String relativePath) {
@@ -118,11 +117,19 @@ public abstract class RestletBatchRequest implements BatchProperty {
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.BatchProperty#getEntityType()
+	 */
+	@Override
 	public EntityType getEntityType() {
 		return entityType;
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.BatchProperty#getMethod()
+	 */
+	@Override
 	public Method getMethod() {
 		return method;
 	}
@@ -138,6 +145,10 @@ public abstract class RestletBatchRequest implements BatchProperty {
 	}
 
 	
+	/* (non-Javadoc)
+	 * @see org.restlet.ext.odata.batch.request.BatchProperty#getEntitySetName()
+	 */
+	@Override
 	public String getEntitySetName() {
 		return entitySetName;
 	}
