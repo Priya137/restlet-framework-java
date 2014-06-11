@@ -13,6 +13,7 @@
 		<dependency type="module" id="freemarker" excludes="android" />
 		<dependency type="module" id="xml" />
 		<dependency type="library" id="freemarker" excludes="android" />
+		<dependency type="library" id="gson" />
 	</dependencies>
 	<source edition="android">
 		<files-sets>

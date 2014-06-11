@@ -30,9 +30,10 @@
  * 
  * Restlet is a registered trademark of Restlet
  */
-
+ 
+import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Collection;
 import org.restlet.data.MediaType;
 import org.restlet.data.Preference;
 import org.restlet.data.Reference;
@@ -40,6 +41,16 @@ import org.restlet.ext.odata.Query;
 import org.restlet.representation.Representation;
 import org.restlet.resource.ClientResource;
 import org.restlet.resource.ResourceException;
+import org.restlet.data.ChallengeScheme;
+import org.restlet.data.ChallengeResponse;
+import org.restlet.data.Parameter;
+import org.restlet.util.Series;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.restlet.ext.odata.internal.edm.TypeUtils;
+import org.restlet.ext.odata.internal.FunctionContentHandler;
+import org.restlet.ext.odata.internal.JsonContentFunctionHandler;
+import org.restlet.ext.odata.internal.AtomContentFunctionHandler;
 
 <#list entityContainer.entities?sort as entitySet>
 import ${entitySet.type.fullClassName};
@@ -56,12 +67,40 @@ import ${entitySet.type.fullClassName};
 
 public class ${className} extends org.restlet.ext.odata.Service {
 
-    /**
-     * Constructor.
-     * 
-     */
+    FunctionContentHandler functionContentHandler;
+
+   /**
+    * Constructor.
+    * 
+    */
     public ${className}() {
         super("${dataServiceUri}");
+        this.functionContentHandler = new JsonContentFunctionHandler();
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_NEGOTIATE, "${userName}", "${password}"));
+    }
+    
+    public ${className}(String serviceUrl, String userName, String password) {
+        super(serviceUrl);
+        this.functionContentHandler = new JsonContentFunctionHandler();
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_NEGOTIATE, userName, password));
+    }
+    
+    public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs) {
+        super(serviceUrl);
+        this.functionContentHandler = new JsonContentFunctionHandler();
+        super.setCredentials(new ChallengeResponse(cs, userName, password));
+    }
+    
+    public ${className}(String serviceUrl, String userName, String password, FunctionContentHandler functionContentHandler) {
+        super(serviceUrl);
+        this.functionContentHandler = functionContentHandler;
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_NEGOTIATE, userName, password));
+    }
+    
+    public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs, FunctionContentHandler functionContentHandler) {
+        super(serviceUrl);
+        this.functionContentHandler = functionContentHandler;
+        super.setCredentials(new ChallengeResponse(cs, userName, password));
     }
 
 <#list entityContainer.entities as entitySet>
@@ -73,8 +112,8 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The entity to add to the service.
      * @throws Exception 
      */
-    public void addEntity(${type.fullClassName} entity) throws Exception {
-        <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
+    public /*<T> T*/ void addEntity(${type.fullClassName} entity) throws Exception {
+        /*return*/ <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
     }
 
     /**
@@ -182,6 +221,110 @@ public class ${className} extends org.restlet.ext.odata.Service {
         }
     }
     </#if>
+</#list>
 
+<#list entityContainer.functionImports as functionImport>
+   <#if functionImport.complex>
+	public ${functionImport.javaReturnType} ${functionImport.name}(
+	    <#assign i= functionImport.parameters?size>
+	    <#list functionImport.parameters as parameter>
+	        <#if i==1>
+	    	${parameter.javaType} ${parameter.name}
+	    	<#else>
+		   	${parameter.javaType} ${parameter.name},
+		    </#if>
+		    <#assign i = i-1>
+        </#list>) {
+        <#if functionImport.javaReturnType!="void">
+		${functionImport.javaReturnType} ${functionImport.name} = null;
+		</#if>
+    	Series<Parameter> parameters = new Series<Parameter>(Parameter.class);
+    	<#list functionImport.parameters as parameter>
+	    Parameter param${parameter.name} = new Parameter();
+    	param${parameter.name}.setName("${parameter.name}");
+    	<#if parameter.type?starts_with("List") || parameter.type?starts_with("Collection")>
+    	Gson gson = new GsonBuilder().serializeNulls().serializeSpecialFloatingPointValues().create();
+    	String jsonValue=gson.toJson(${parameter.name});    	
+    	param${parameter.name}.setValue(jsonValue);
+    	<#else>
+    	param${parameter.name}.setValue(${parameter.name}!=null?${parameter.name}.toString():null);
+    	</#if>
+		parameters.add(param${parameter.name});
+        </#list>
+        <#if functionImport.javaReturnType!="void">
+		Representation representation = invokeComplex("${functionImport.name}", parameters);
+		${functionImport.name} = (${functionImport.javaReturnType})this.functionContentHandler.parseResult(${functionImport.javaReturnType}.class, representation, "${functionImport.name}",null);
+    	<#else>
+    	invokeComplex("${functionImport.name}", parameters);
+    	</#if>
+    	<#if functionImport.javaReturnType!="void">
+    	return ${functionImport.name};
+        </#if>
+    }
+   </#if>
+   
+   <#if functionImport.collection>
+	public ${functionImport.javaReturnType} ${functionImport.name}(
+	    <#assign i= functionImport.parameters?size>
+	    <#list functionImport.parameters as parameter>
+	        <#if i==1>
+	    	${parameter.javaType} ${parameter.name}
+	    	<#else>
+		   	${parameter.javaType} ${parameter.name},
+		    </#if>
+		    <#assign i = i-1>
+        </#list>) {
+        <#if functionImport.javaReturnType!="void">
+		${functionImport.javaReturnType} ${functionImport.name} = new ArrayList<${functionImport.returnType}>();
+		</#if>
+    	Series<Parameter> parameters = new Series<Parameter>(Parameter.class);
+    	<#list functionImport.parameters as parameter>
+	    Parameter param${parameter.name} = new Parameter();
+    	param${parameter.name}.setName("${parameter.name}");
+    	<#if parameter.type?starts_with("List") || parameter.type?starts_with("Collection")>
+    	Gson gson = new GsonBuilder().serializeNulls().serializeSpecialFloatingPointValues().create();
+    	String jsonValue=gson.toJson(${parameter.name});    	
+    	param${parameter.name}.setValue(jsonValue);
+    	<#else>
+    	param${parameter.name}.setValue(${parameter.name}!=null?${parameter.name}.toString():null);
+    	</#if>
+		parameters.add(param${parameter.name});
+        </#list>
+        <#if functionImport.javaReturnType!="void">
+		Representation representation = invokeComplex("${functionImport.name}", parameters);
+		${functionImport.name} = (${functionImport.javaReturnType})this.functionContentHandler.parseResult(${functionImport.returnType}.class, representation, "${functionImport.name}", ${functionImport.name});
+    	<#else>
+    	invokeComplex("${functionImport.name}", parameters);
+    	</#if>
+    	<#if functionImport.javaReturnType!="void">
+    	return ${functionImport.name};
+        </#if>
+    }
+   </#if>
+   
+   <#if functionImport.simple>
+ 	public ${functionImport.javaReturnType} ${functionImport.name} (
+	    <#assign i= functionImport.parameters?size>
+	    <#list functionImport.parameters as parameter>
+	        <#if i==1>
+	    	${parameter.javaType} ${parameter.name}
+	    	<#else>
+		   	${parameter.javaType} ${parameter.name},
+		    </#if>
+		    <#assign i = i-1>
+        </#list>) throws ResourceException, Exception{
+		${functionImport.javaReturnType} ${functionImport.name} = null;
+    	Series<Parameter> parameters = new Series<Parameter>(Parameter.class);
+    	<#list functionImport.parameters as parameter>
+    	Parameter param${parameter.name} = new Parameter();
+	    param${parameter.name}.setName("${parameter.name}");
+		param${parameter.name}.setValue(${parameter.name}!=null?${parameter.name}.toString():null);
+		parameters.add(param${parameter.name});
+        </#list>
+    	String stringValue = invokeSimple("${functionImport.name}", parameters);
+    	${functionImport.name} = (${functionImport.javaReturnType})TypeUtils.convert(${functionImport.javaReturnType}.class, stringValue);
+        return ${functionImport.name};
+	 }
+   </#if>
 </#list>
 }

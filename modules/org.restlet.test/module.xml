@@ -43,6 +43,7 @@
 		<dependency type="module" id="xml" />
 		<dependency type="module" id="xstream" />
 		<dependency type="module" id="thymeleaf" />
+		<dependency type="library" id="gson" />
 	</dependencies>
 	<source edition="android">
 		<files-sets>
