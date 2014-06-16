@@ -3,7 +3,7 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/org.restlet"/>
-	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/com.thoughtworks.xstream"/>
-	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/org.codehaus.jettison"/>
+	<classpathentry kind="lib" path="E:/WorkSpaces/restlet/restlet-framework-lgc-2.2/libraries/org.codehaus.jettison_1.3/org.codehaus.jettison.jar"/>
+	<classpathentry kind="lib" path="E:/WorkSpaces/restlet/restlet-framework-lgc-2.2/libraries/com.thoughtworks.xstream_1.4/com.thoughtworks.xstream.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
