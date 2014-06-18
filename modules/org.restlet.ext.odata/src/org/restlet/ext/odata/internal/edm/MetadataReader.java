@@ -701,10 +701,9 @@ public class MetadataReader extends DefaultHandler {
             String elementType = attrs.getValue(XmlFormatParser.NS_DSDS_EDMANNOTATION, "elementType");
 			if (elementType != null) {
 				String[] split = elementType.split("\\.");
-				String pkgName = ReflectUtils.normalize(split[0]);
 				String className = ReflectUtils.normalize(split[1]);
 				className = className.substring(0, 1).toUpperCase() + className.substring(1);
-				currentFunctionImport.setJavaReturnType(pkgName + "." + className);
+				currentFunctionImport.setJavaReturnType(className);
 				currentFunctionImport.setComplex(true);
 			} else if (attrs.getValue("ReturnType") != null) {
 				if (attrs.getValue("ReturnType").startsWith("Collection")) {

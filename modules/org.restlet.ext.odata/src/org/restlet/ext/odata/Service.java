@@ -66,10 +66,7 @@ import org.restlet.engine.header.HeaderReader;
 import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
-import org.restlet.ext.atom.Feed;
-import org.restlet.ext.atom.Link;
-import org.restlet.ext.atom.Relation;
-import org.restlet.ext.odata.internal.EntryContentHandler;
+import org.restlet.ext.odata.batch.util.RestletBatchRequestHelper;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
 import org.restlet.ext.odata.internal.edm.ComplexProperty;
 import org.restlet.ext.odata.internal.edm.EntityContainer;
@@ -81,6 +78,7 @@ import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.odata.streaming.StreamReference;
 import org.restlet.ext.odata.validation.annotation.SystemGenerated;
+import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.ext.xml.DomRepresentation;
 import org.restlet.ext.xml.SaxRepresentation;
 import org.restlet.ext.xml.XmlWriter;
@@ -223,6 +221,8 @@ public class Service {
 
     /**
      * Adds an entity to an entity set.
+     * @param <T>
+     * @param <T>
      * 
      * @param entitySetName
      *            The path of the entity set relatively to the service URI.
@@ -230,7 +230,7 @@ public class Service {
      *            The entity to put.
      * @throws Exception
      */
-	public void addEntity(String entitySetName, Object entity) throws Exception {
+	public <T> T addEntity(String entitySetName, Object entity) throws Exception {
 		if (entity != null) {
 			Metadata metadata = (Metadata) getMetadata();
 			EntityType type = metadata.getEntityType(entity.getClass());
@@ -246,10 +246,11 @@ public class Service {
 					}
 					//post the inputstream with slug header.
 					rep = resource.post(inputStream, slug, contentType);
-					EntryContentHandler<?> entryContentHandler = new EntryContentHandler<Object>(entity.getClass(),
-							(Metadata) getMetadata(), getLogger());
-					Entry currentEntity = new Entry(rep, entryContentHandler);
-					this.merge(entity, currentEntity.getId()); //merge the remaining properties using merge request.
+					
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type.getName(), type, entity.getClass(), metadata);
+                    T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
+					this.merge(entity, feedHandler.getFeed().getEntries().get(0).getId()); //merge the remaining properties using merge request.
+					return newEntity;
 				} else {
 					if (getMetadata() == null) {
 						throw new Exception("Can't add entity to this entity set " + resource.getReference()
@@ -261,10 +262,11 @@ public class Service {
 					baos.flush();
 					StringRepresentation r = new StringRepresentation(baos.toString(), MediaType.APPLICATION_ATOM);
 					rep = resource.post(r);
-					EntryContentHandler<?> entryContentHandler = new EntryContentHandler<Object>(entity.getClass(),
-							(Metadata) getMetadata(), getLogger());
-					Feed feed = new Feed();
-					feed.getEntries().add(new Entry(rep, entryContentHandler));
+					// parse the response to populate the newly created entity object
+					
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type.getName(), type, entity.getClass(), metadata);
+                    T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
+                    return newEntity;
 				}
 			} catch (ResourceException re) {
 				throw new ResourceException(re.getStatus(), "Can't add entity to this entity set "
@@ -276,6 +278,7 @@ public class Service {
 				this.latestResponse = resource.getResponse();
 			}
 		}
+		return null;
 	}
 
 
@@ -360,7 +363,7 @@ public class Service {
     /**
      * Returns an instance of {@link ClientResource} given an absolute
      * reference. This resource is completed with the service credentials. This
-     * method can be overriden in order to complete the sent requests.
+     * method can be overridden in order to complete the sent requests.
      * 
      * @param reference
      *            The reference of the target resource.
@@ -573,7 +576,7 @@ public class Service {
      * 
      * @return The metadata document related to the current service.
      */
-    protected Object getMetadata() {
+    public Object getMetadata() {
         if (metadata == null) {
             ClientResource resource = createResource("$metadata");
 

@@ -40,7 +40,7 @@ import ${clazz};
 </#list>
 
 <#list type.importedTypes?sort as t>
-import ${t.fullClassName};
+import ${packageName}.${t.className};
 </#list>
 </#compress>
 

@@ -36,10 +36,11 @@ package org.restlet.ext.odata;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.restlet.data.ChallengeResponse;
+import org.restlet.data.ChallengeScheme;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -67,12 +68,17 @@ import freemarker.template.Configuration;
 public class Generator {
 
     /**
-     * Takes two (or three) parameters:<br>
+     * Takes seven parameters:<br>
      * <ol>
      * <li>The URI of the OData service</li>
-     * <li>The output directory (optional, used the current directory by
-     * default)</li>
-     * <li>The name of the generated service class name (optional)</li>
+     * <li>Username to access OData service</li>
+     * <li>Password to access OData service</li>
+     * <li>ChallangeScheme - Possible values HTTP_BASIC, HTTP_NEGOTIATE, if not provided then HTTP_BASIC will be used as default.</li>
+     * <li>Service class name</li>
+     * <li>The output directory for Service class generation (For example : src/com/edm/entities), 
+     *       if no directory is provided class will be generated in the default package.</li>
+     * <li>The output directory for Entity class generation (For example : src/com/edm/service), 
+     *       if no directory is provided schema name will be used as default package.</li>
      * </ol>
      * 
      * @param args
@@ -87,14 +93,68 @@ public class Generator {
         String errorMessage = null;
 
         if (args == null || args.length == 0) {
-            errorMessage = "Missing mandatory argument: URI of the OData service.";
-        }
+			errorMessage = "Missing mandatory arguments: <URI of the OData service> <Username> "
+					+ "<Password> <ChallangeScheme> <ChallangeScheme> "
+					+ "<Service Class Name> <Service Package> <Entity Package>.";
+		}
 
         File outputDir = null;
+        File serviceDir = null;
 
         if (errorMessage == null) {
+            
             if (args.length > 1) {
-                outputDir = new File(args[1]);
+            	userName = args[1];
+            }
+            
+            if (args.length > 2) {
+            	password = args[2];
+            }
+            
+			if (args.length > 3) {
+				if ("null".equalsIgnoreCase(args[3]) || "".equalsIgnoreCase(args[3])) {
+					challangeScheme = ChallengeScheme.HTTP_BASIC;
+				} else {
+					challangeScheme = ChallengeScheme.valueOf(args[3]);
+				}
+			}
+            
+            if (args.length > 4) {
+            	serviceClassName = args[4];
+            }
+            
+            if (args.length > 5) {
+            	serviceDir = new File(args[5]);
+            	servicePkg =  args[5].substring(4, args[5].length());
+            } else {
+                try {
+                	serviceDir = new File(".").getCanonicalFile();
+                } catch (IOException e) {
+                    errorMessage = "Unable to get the target directory for service generation. "
+                            + e.getMessage();
+                }
+            }
+
+            if (serviceDir.exists()) {
+                System.out.println("step 2 - check the ouput directory");
+                if (!serviceDir.isDirectory()) {
+                    errorMessage = serviceDir.getPath()
+                            + " is not a valid directory.";
+                }
+
+            } else {
+                try {
+                    System.out.println("step 2 - create the ouput directory");
+                    serviceDir.mkdirs();
+                } catch (Throwable e) {
+                    errorMessage = "Cannot create " + serviceDir.getPath()
+                            + " due to: " + e.getMessage();
+                }
+            }
+           
+            if (args.length > 6) {
+                outputDir = new File(args[6]);
+                entityPkg = args[6].substring(4, args[6].length());
             } else {
                 try {
                     outputDir = new File(".").getCanonicalFile();
@@ -121,6 +181,7 @@ public class Generator {
                 }
             }
         }
+        
         if (errorMessage == null) {
             System.out.println("step 3 - get the metadata descriptor");
             String dataServiceUri = null;
@@ -134,19 +195,16 @@ public class Generator {
             }
 
             Service service = new Service(dataServiceUri);
+            service.setCredentials(new ChallengeResponse(challangeScheme, userName,
+    				password));
             if (service.getMetadata() == null) {
                 errorMessage = "Cannot retrieve the metadata.";
             } else {
                 System.out.println("step 4 - generate source code");
-                Generator svcUtil = null;
-                if (args.length == 3) {
-                    svcUtil = new Generator(service.getServiceRef(), args[2]);
-                } else {
-                    svcUtil = new Generator(service.getServiceRef());
-                }
-
+                Generator svcUtil = new Generator(service.getServiceRef());
+                
                 try {
-                    svcUtil.generate(outputDir);
+                    svcUtil.generate(outputDir, serviceDir);
                     System.out
                             .print("The source code has been generated in directory: ");
                     System.out.println(outputDir.getPath());
@@ -172,10 +230,21 @@ public class Generator {
     }
 
     /** The name of the service class (in case there is only one in the schema). */
-    private String serviceClassName;
+    private static String serviceClassName;
 
     /** The URI of the target data service. */
     private Reference serviceRef;
+    
+    private static String userName;
+    
+	private static String password;
+	
+	private static String entityPkg;
+	
+	private static String servicePkg;
+	
+	private static ChallengeScheme challangeScheme;
+	
 
     /**
      * Constructor.
@@ -201,9 +270,9 @@ public class Generator {
         super();
         this.serviceRef = serviceRef;
         if (serviceClassName != null) {
-            this.serviceClassName = ReflectUtils.normalize(serviceClassName);
-            this.serviceClassName = this.serviceClassName.substring(0, 1)
-                    .toUpperCase() + this.serviceClassName.substring(1);
+            Generator.serviceClassName = ReflectUtils.normalize(serviceClassName);
+            Generator.serviceClassName = Generator.serviceClassName.substring(0, 1)
+                    .toUpperCase() + Generator.serviceClassName.substring(1);
         }
 
     }
@@ -239,129 +308,154 @@ public class Generator {
      *            The output directory.
      * @throws Exception
      */
-    public void generate(File outputDir) throws Exception {
-        Service service = new Service(serviceRef);
-        Metadata metadata = (Metadata) service.getMetadata();
-        if (metadata == null) {
-            throw new Exception("Can't get the metadata for this service: "
-                    + serviceRef);
-        }
+    public void generate(File outputDir, File serviceDir) throws Exception {
+		Service service = new Service(serviceRef);
+		service.setCredentials(new ChallengeResponse(challangeScheme, userName,
+				password));
 
-        Configuration fmc = new Configuration();
-        fmc.setDefaultEncoding(CharacterSet.UTF_8.getName());
+		Configuration fmc = new Configuration();
+		fmc.setDefaultEncoding(CharacterSet.UTF_8.getName());
 
-        // Generate classes
-        String rootTemplates = "clap://class/org/restlet/ext/odata/internal/templates";
-        Representation complexTmpl = new StringRepresentation(
-                new ClientResource(rootTemplates + "/complexType.ftl").get()
-                        .getText());
-        Representation entityTmpl = new StringRepresentation(
-                new ClientResource(rootTemplates + "/entityType.ftl").get()
-                        .getText());
-        Representation serviceTmpl = new StringRepresentation(
-                new ClientResource(rootTemplates + "/service.ftl").get()
-                        .getText());
+		// Generate classes
+		String rootTemplates = "clap://class/org/restlet/ext/odata/internal/templates";
+		Representation complexTmpl = new StringRepresentation(
+				new ClientResource(rootTemplates + "/complexType.ftl").get()
+						.getText());
+		Representation entityTmpl = new StringRepresentation(
+				new ClientResource(rootTemplates + "/entityType.ftl").get()
+						.getText());
+		Representation serviceTmpl = new StringRepresentation(
+				new ClientResource(rootTemplates + "/service.ftl").get()
+						.getText());
 
-        for (Schema schema : metadata.getSchemas()) {
-            if ((schema.getEntityTypes() != null && !schema.getEntityTypes()
-                    .isEmpty())
-                    || (schema.getComplexTypes() != null && !schema
-                            .getComplexTypes().isEmpty())) {
-                String packageName = TypeUtils.getPackageName(schema);
-                File packageDir = new File(outputDir, packageName.replace(".",
-                        System.getProperty("file.separator")));
-                packageDir.mkdirs();
+		Metadata metadata = (Metadata) service.getMetadata();
+		for (Schema schema : metadata.getSchemas()) {
+			if ((schema.getEntityTypes() != null && !schema.getEntityTypes()
+					.isEmpty())
+					|| (schema.getComplexTypes() != null && !schema
+							.getComplexTypes().isEmpty())) {
+				
+				File packageDir = outputDir != null ? outputDir : new File(
+						TypeUtils.getPackageName(schema));
+				packageDir.mkdirs();
+				
+				String packageName = outputDir != null ? (entityPkg.replace(
+						"/", ".")) : TypeUtils.getPackageName(schema);
+				// For each entity type
+				for (EntityType type : schema.getEntityTypes()) {
+					String className = type.getClassName();
+					Map<String, Object> dataModel = new HashMap<String, Object>();
+					dataModel.put("type", type);
+					dataModel.put("schema", schema);
+					dataModel.put("metadata", metadata);
+					dataModel.put("className", className);
+					dataModel.put("packageName", packageName);
 
-                // For each entity type
-                for (EntityType type : schema.getEntityTypes()) {
-                    String className = type.getClassName();
-                    Map<String, Object> dataModel = new HashMap<String, Object>();
-                    dataModel.put("type", type);
-                    dataModel.put("schema", schema);
-                    dataModel.put("metadata", metadata);
-                    dataModel.put("className", className);
-                    dataModel.put("packageName", packageName);
+					try {
+						TemplateRepresentation templateRepresentation = new TemplateRepresentation(
+								entityTmpl, fmc, dataModel,
+								MediaType.TEXT_PLAIN);
+						templateRepresentation
+								.setCharacterSet(CharacterSet.UTF_8);
 
-                    TemplateRepresentation templateRepresentation = new TemplateRepresentation(
-                            entityTmpl, fmc, dataModel, MediaType.TEXT_PLAIN);
-                    templateRepresentation.setCharacterSet(CharacterSet.UTF_8);
+						// Write the template representation as a Java class
+						templateRepresentation.write(new FileOutputStream(
+								new File(packageDir, type.getClassName()
+										+ ".java")));
+					} catch (Exception e) {
+						System.out
+						.println("Exception Occurred in generating entity type for - "
+								+ type.getClassName());
+					}
 
-                    // Write the template representation as a Java class
-                    OutputStream fos = new FileOutputStream(new File(
-                            packageDir, type.getClassName() + ".java"));
-                    templateRepresentation.write(fos);
-                    fos.flush();
-                }
+				}
 
-                for (ComplexType type : schema.getComplexTypes()) {
-                    String className = type.getClassName();
-                    Map<String, Object> dataModel = new HashMap<String, Object>();
-                    dataModel.put("type", type);
-                    dataModel.put("schema", schema);
-                    dataModel.put("metadata", metadata);
-                    dataModel.put("className", className);
-                    dataModel.put("packageName", packageName);
+				for (ComplexType type : schema.getComplexTypes()) {
+					String className = type.getClassName();
+					Map<String, Object> dataModel = new HashMap<String, Object>();
+					dataModel.put("type", type);
+					dataModel.put("schema", schema);
+					dataModel.put("metadata", metadata);
+					dataModel.put("className", className);
+					dataModel.put("packageName", packageName);
 
-                    TemplateRepresentation templateRepresentation = new TemplateRepresentation(
-                            complexTmpl, fmc, dataModel, MediaType.TEXT_PLAIN);
-                    templateRepresentation.setCharacterSet(CharacterSet.UTF_8);
+					try {
+						TemplateRepresentation templateRepresentation = new TemplateRepresentation(
+								complexTmpl, fmc, dataModel,
+								MediaType.TEXT_PLAIN);
 
-                    // Write the template representation as a Java class
-                    OutputStream fos = new FileOutputStream(new File(
-                            packageDir, type.getClassName() + ".java"));
-                    templateRepresentation.write(fos);
-                    fos.flush();
-                }
-            }
-        }
-        if (metadata.getContainers() != null
-                && !metadata.getContainers().isEmpty()) {
-            for (EntityContainer entityContainer : metadata.getContainers()) {
-                Schema schema = entityContainer.getSchema();
-                // Generate Service subclass
-                StringBuffer className = new StringBuffer();
+						templateRepresentation
+								.setCharacterSet(CharacterSet.UTF_8);
 
-                if (serviceClassName != null) {
-                    // Try to use the Client preference
-                    if (entityContainer.isDefaultEntityContainer()) {
-                        className.append(serviceClassName);
-                    } else if (metadata.getContainers().size() == 1) {
-                        className.append(serviceClassName);
-                    } else {
-                        className.append(schema.getNamespace()
-                                .getNormalizedName().substring(0, 1)
-                                .toUpperCase());
-                        className.append(schema.getNamespace()
-                                .getNormalizedName().substring(1));
-                        className.append("Service");
-                    }
-                } else {
-                    className.append(schema.getNamespace().getNormalizedName()
-                            .substring(0, 1).toUpperCase());
-                    className.append(schema.getNamespace().getNormalizedName()
-                            .substring(1));
-                    className.append("Service");
-                }
+						// Write the template representation as a Java class
+						templateRepresentation.write(new FileOutputStream(
+								new File(packageDir, type.getClassName()
+										+ ".java")));
+					} catch (Exception e) {
+						System.out
+								.println("Exception Occurred in generating complex type for - "
+										+ type.getClassName());
+					}
+				}
+			}
+		}
 
-                Map<String, Object> dataModel = new HashMap<String, Object>();
-                dataModel.put("schema", schema);
-                dataModel.put("metadata", metadata);
-                dataModel.put("className", className);
-                dataModel.put("dataServiceUri", this.serviceRef.getTargetRef());
-                dataModel.put("entityContainer", entityContainer);
+		if (metadata.getContainers() != null
+				&& !metadata.getContainers().isEmpty()) {
+			for (EntityContainer entityContainer : metadata.getContainers()) {
+				Schema schema = entityContainer.getSchema();
+				// Generate Service subclass
+				StringBuffer className = new StringBuffer();
+				if (serviceClassName != null) {
+					// Try to use the Client preference
+					if (entityContainer.isDefaultEntityContainer()) {
+						className.append(serviceClassName);
+					} else if (metadata.getContainers().size() == 1) {
+						className.append(serviceClassName);
+					} else {
+						className.append(schema.getNamespace()
+								.getNormalizedName().substring(0, 1)
+								.toUpperCase());
+						className.append(schema.getNamespace()
+								.getNormalizedName().substring(1));
+						className.append("Service");
+					}
+				} else {
+					className.append(schema.getNamespace().getNormalizedName()
+							.substring(0, 1).toUpperCase());
+					className.append(schema.getNamespace().getNormalizedName()
+							.substring(1));
+					className.append("Service");
+				}
 
-                TemplateRepresentation templateRepresentation = new TemplateRepresentation(
-                        serviceTmpl, fmc, dataModel, MediaType.TEXT_PLAIN);
-                templateRepresentation.setCharacterSet(CharacterSet.UTF_8);
+				String packageName = outputDir != null ? (entityPkg.replace("/", ".")) : TypeUtils
+						.getPackageName(schema);
+				Map<String, Object> dataModel = new HashMap<String, Object>();
+				dataModel.put("schema", schema);
+				dataModel.put("metadata", metadata);
+				dataModel.put("className", className);
+				dataModel.put("dataServiceUri", service.getServiceRef()
+						.getTargetRef());
+				dataModel.put("entityContainer", entityContainer);
+				dataModel.put("servicePkg", servicePkg.replace("/", "."));
+				dataModel.put("entityClassPkg", packageName);
 
-                // Write the template representation as a Java class
-                OutputStream fos = new FileOutputStream(new File(outputDir,
-                        className + ".java"));
-                templateRepresentation.write(fos);
-                fos.flush();
-            }
-        }
-    }
+				try {
+					TemplateRepresentation templateRepresentation = new TemplateRepresentation(
+							serviceTmpl, fmc, dataModel, MediaType.TEXT_PLAIN);
+					templateRepresentation.setCharacterSet(CharacterSet.UTF_8);
+
+					// Write the template representation as a Java class
+					templateRepresentation.write(new FileOutputStream(new File(
+							serviceDir, className + ".java")));
+				} catch (Exception e) {
+					System.out
+							.println("Exception Occurred in generating Service class for - "
+									+ className);
+				}
+			}
+		}
+	}
 
     /**
      * Generates the client code to the given output directory.
@@ -371,6 +465,6 @@ public class Generator {
      * @throws Exception
      */
     public void generate(String outputDir) throws Exception {
-        generate(new File(outputDir));
+        generate(new File(outputDir), new File(outputDir));
     }
 }
