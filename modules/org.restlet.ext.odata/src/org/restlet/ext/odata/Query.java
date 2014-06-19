@@ -423,6 +423,19 @@ public class Query<T> implements Iterable<T> {
         }
     }
 
+	
+	/**
+	 * Gets the query client resource,used in the GetEntityRequest for Batch execution.
+	 *
+	 * @return the query client resource
+	 */
+	public ClientResource getQueryClientResource() {
+		String targetUri = createTargetUri();
+		ClientResource resource = service.createResource(new Reference(
+		        targetUri));
+		return resource;
+	}
+
     /**
      * Creates a new Query<T> with the $expand option set in the URI generated
      * by the returned query.
@@ -770,4 +783,11 @@ public class Query<T> implements Iterable<T> {
     public Query<T> top(int rowsCount) {
         return addParameter("$top", Integer.toString(rowsCount));
     }
+    
+    /**
+     * @return
+     */
+    public Class<?> getEntityClass() {
+		return entityClass;
+	}
 }

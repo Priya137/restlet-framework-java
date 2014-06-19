@@ -51,9 +51,15 @@ import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.FunctionContentHandler;
 import org.restlet.ext.odata.internal.JsonContentFunctionHandler;
 import org.restlet.ext.odata.internal.AtomContentFunctionHandler;
+import org.restlet.ext.odata.batch.request.BatchRequest;
+import org.restlet.ext.odata.batch.request.impl.BatchRequestImpl;
 
 <#list entityContainer.entities?sort as entitySet>
-import ${entitySet.type.fullClassName};
+import ${entityClassPkg}.${entitySet.type.className};
+</#list>
+
+<#list schema.complexTypes? sort as ct>
+import ${entityClassPkg}.${ct.className};
 </#list>
 
 <#compress>
@@ -76,13 +82,13 @@ public class ${className} extends org.restlet.ext.odata.Service {
     public ${className}() {
         super("${dataServiceUri}");
         this.functionContentHandler = new JsonContentFunctionHandler();
-        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_NEGOTIATE, "${userName}", "${password}"));
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, "${userName}", "${password}"));
     }
     
     public ${className}(String serviceUrl, String userName, String password) {
         super(serviceUrl);
         this.functionContentHandler = new JsonContentFunctionHandler();
-        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_NEGOTIATE, userName, password));
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
     }
     
     public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs) {
@@ -94,7 +100,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
     public ${className}(String serviceUrl, String userName, String password, FunctionContentHandler functionContentHandler) {
         super(serviceUrl);
         this.functionContentHandler = functionContentHandler;
-        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_NEGOTIATE, userName, password));
+        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
     }
     
     public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs, FunctionContentHandler functionContentHandler) {
@@ -110,10 +116,13 @@ public class ${className} extends org.restlet.ext.odata.Service {
      * 
      * @param entity
      *            The entity to add to the service.
+     * @return generic object of Type T.
+     * 			The newly created entity.
+     *	
      * @throws Exception 
      */
-    public /*<T> T*/ void addEntity(${type.fullClassName} entity) throws Exception {
-        /*return*/ <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
+    public <T> T addEntity(${type.className} entity) throws Exception {
+        return <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
     }
 
     /**
@@ -123,8 +132,8 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The path to this entity relatively to the service URI.
      * @return A query object.
      */
-    public Query<${type.fullClassName}> create${type.className}Query(String subpath) {
-        return createQuery(subpath, ${type.fullClassName}.class);
+    public Query<${type.className}> create${type.className}Query(String subpath) {
+        return createQuery(subpath, ${type.className}.class);
     }
 
     <#if (type.blob && type.blobValueRefProperty?? && type.blobValueRefProperty.name??)>
@@ -135,7 +144,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The given media resource.
      * @return The binary representation of the given media resource.
      */
-    public Representation getValue(${type.fullClassName} entity) throws ResourceException {
+    public Representation getValue(${type.className} entity) throws ResourceException {
         Reference ref = getValueRef(entity);
         if (ref != null) {
             ClientResource cr = createResource(ref);
@@ -154,7 +163,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The requested media types of the representation.
      * @return The given media resource.
      */
-    public Representation getValue(${type.fullClassName} entity,
+    public Representation getValue(${type.className} entity,
             List<Preference<MediaType>> acceptedMediaTypes)
             throws ResourceException {
         Reference ref = getValueRef(entity);
@@ -176,7 +185,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The requested media type of the representation
      * @return The given media resource.
      */
-    public Representation getValue(${type.fullClassName} entity, MediaType mediaType)
+    public Representation getValue(${type.className} entity, MediaType mediaType)
             throws ResourceException {
         Reference ref = getValueRef(entity);
         if (ref != null) {
@@ -194,13 +203,22 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The media resource.
      * @return The reference of the binary representation of the given entity.
      */
-    public Reference getValueRef(${type.fullClassName} entity) {
+    public Reference getValueRef(${type.className} entity) {
         if (entity != null) {
             return entity.get${type.blobValueRefProperty.name?cap_first}();
         }
 
         return null;
     }
+    
+     /**
+     * Returns the instance of BatchRequestImpl for batch requests.
+     * 
+     * @return The reference of the binary representation of the given entity.
+     */
+   	public BatchRequest createBatchRequest(){
+		return new BatchRequestImpl(this);
+	}
 
     /**
      * Sets the value of the given media entry link.
@@ -211,7 +229,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *            The new representation.
      * @throws ResourceException
      */
-    public void setValue(${type.fullClassName} entity, Representation blob)
+    public void setValue(${type.className} entity, Representation blob)
             throws ResourceException {
         Reference ref = entity.get${type.blobValueEditRefProperty.name?cap_first}();
 
