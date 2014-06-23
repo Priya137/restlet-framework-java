@@ -11,9 +11,7 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLEventWriter;
 import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
@@ -377,10 +375,6 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	public static String innerText(XMLEventReader reader, StartElement element) {
 		try {
 			StringWriter sw = new StringWriter();
-			XMLOutputFactory factory = XMLOutputFactory.newInstance();
-			XMLEventWriter writer;
-
-			writer = factory.createXMLEventWriter(sw);
 			while (reader.hasNext()) {
 
 				XMLEvent event = reader.nextEvent();
@@ -390,7 +384,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 
 					return sw.toString();
 				} else {
-					writer.add(event);
+					sw.append(event.asCharacters().getData());
 				}
 
 			}

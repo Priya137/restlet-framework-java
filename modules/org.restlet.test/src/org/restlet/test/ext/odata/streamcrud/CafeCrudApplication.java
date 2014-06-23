@@ -86,7 +86,7 @@ public class CafeCrudApplication extends Application {
 						response.setStatus(Status.SUCCESS_CREATED);
 					}
 				} else {
-					first = series.getFirst(HeaderConstants.HEADER_X_HTTP_METHOD);
+					first = series.getFirst(HeaderConstants.HEADER_X_HTTP_METHOD, true);
 					if (first != null) {// check for merge request
 						try {
 							entity.getText();

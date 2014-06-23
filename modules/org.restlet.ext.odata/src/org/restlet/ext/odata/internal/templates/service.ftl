@@ -30,7 +30,8 @@
  * 
  * Restlet is a registered trademark of Restlet
  */
- 
+package ${packageName};
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
@@ -82,13 +83,13 @@ public class ${className} extends org.restlet.ext.odata.Service {
     public ${className}() {
         super("${dataServiceUri}");
         this.functionContentHandler = new JsonContentFunctionHandler();
-        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, "${userName}", "${password}"));
+        super.setCredentials(new ChallengeResponse(${challengeScheme}, "${userName}", "${password}"));
     }
     
     public ${className}(String serviceUrl, String userName, String password) {
         super(serviceUrl);
         this.functionContentHandler = new JsonContentFunctionHandler();
-        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
+        super.setCredentials(new ChallengeResponse(${challengeScheme}, userName, password));
     }
     
     public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs) {
@@ -100,7 +101,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
     public ${className}(String serviceUrl, String userName, String password, FunctionContentHandler functionContentHandler) {
         super(serviceUrl);
         this.functionContentHandler = functionContentHandler;
-        super.setCredentials(new ChallengeResponse(ChallengeScheme.HTTP_BASIC, userName, password));
+        super.setCredentials(new ChallengeResponse(${challengeScheme}, userName, password));
     }
     
     public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs, FunctionContentHandler functionContentHandler) {
