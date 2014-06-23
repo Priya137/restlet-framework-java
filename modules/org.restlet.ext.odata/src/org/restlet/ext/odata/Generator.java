@@ -113,9 +113,9 @@ public class Generator {
             
 			if (args.length > 3) {
 				if ("null".equalsIgnoreCase(args[3]) || "".equalsIgnoreCase(args[3])) {
-					challangeScheme = ChallengeScheme.HTTP_BASIC;
+					challengeScheme = ChallengeScheme.HTTP_BASIC;
 				} else {
-					challangeScheme = ChallengeScheme.valueOf(args[3]);
+					challengeScheme = ChallengeScheme.valueOf(args[3]);
 				}
 			}
             
@@ -195,7 +195,7 @@ public class Generator {
             }
 
             Service service = new Service(dataServiceUri);
-            service.setCredentials(new ChallengeResponse(challangeScheme, userName,
+            service.setCredentials(new ChallengeResponse(challengeScheme, userName,
     				password));
             if (service.getMetadata() == null) {
                 errorMessage = "Cannot retrieve the metadata.";
@@ -243,7 +243,7 @@ public class Generator {
 	
 	private static String servicePkg;
 	
-	private static ChallengeScheme challangeScheme;
+	private static ChallengeScheme challengeScheme;
 	
 
     /**
@@ -310,7 +310,7 @@ public class Generator {
      */
     public void generate(File outputDir, File serviceDir) throws Exception {
 		Service service = new Service(serviceRef);
-		service.setCredentials(new ChallengeResponse(challangeScheme, userName,
+		service.setCredentials(new ChallengeResponse(challengeScheme, userName,
 				password));
 
 		Configuration fmc = new Configuration();
@@ -428,17 +428,23 @@ public class Generator {
 					className.append("Service");
 				}
 
-				String packageName = outputDir != null ? (entityPkg.replace("/", ".")) : TypeUtils
+				String packageName = outputDir != null ? (servicePkg.replace(
+						"/", ".")) : TypeUtils.getPackageName(schema);
+				String entityClassPkg = outputDir != null ? (entityPkg.replace("/", ".")) : TypeUtils
 						.getPackageName(schema);
 				Map<String, Object> dataModel = new HashMap<String, Object>();
 				dataModel.put("schema", schema);
 				dataModel.put("metadata", metadata);
 				dataModel.put("className", className);
+				dataModel.put("challengeScheme", "ChallengeScheme."+challengeScheme.getName());
+				dataModel.put("userName", userName);
+				dataModel.put("password", password);
 				dataModel.put("dataServiceUri", service.getServiceRef()
 						.getTargetRef());
 				dataModel.put("entityContainer", entityContainer);
 				dataModel.put("servicePkg", servicePkg.replace("/", "."));
-				dataModel.put("entityClassPkg", packageName);
+				dataModel.put("entityClassPkg", entityClassPkg);
+				dataModel.put("packageName", packageName);
 
 				try {
 					TemplateRepresentation templateRepresentation = new TemplateRepresentation(
