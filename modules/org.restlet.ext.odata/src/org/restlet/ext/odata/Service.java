@@ -169,6 +169,9 @@ public class Service {
 	
 	/** List of cookies used to cache the cookies sent from server. */
 	List<Cookie> cookies;
+	
+	/** The isPostRequest used to differentiate POST request. */
+	private boolean isPostRequest;	
 
     /**
      * Constructor.
@@ -232,6 +235,7 @@ public class Service {
      */
 	public <T> T addEntity(String entitySetName, Object entity) throws Exception {
 		if (entity != null) {
+			isPostRequest = Boolean.TRUE;
 			Metadata metadata = (Metadata) getMetadata();
 			EntityType type = metadata.getEntityType(entity.getClass());
 			ClientResource resource = createResource(entitySetName);
@@ -274,6 +278,7 @@ public class Service {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}finally {
+				isPostRequest = Boolean.FALSE;
 				this.latestRequest = resource.getRequest();
 				this.latestResponse = resource.getResponse();
 			}
@@ -1283,7 +1288,11 @@ public class Service {
                             Property prop = ((Metadata) getMetadata())
                                     .getProperty(entity, field.getName());
 
-							if (prop != null && systemGeneratedAnnotation == null) {
+							if (prop != null && systemGeneratedAnnotation == null && isPostRequest) {
+                                writeProperty(writer, entity, prop, getter,
+                                        nullAttrs);
+                            }
+							else if (prop != null && !isPostRequest) {
                                 writeProperty(writer, entity, prop, getter,
                                         nullAttrs);
                             }
