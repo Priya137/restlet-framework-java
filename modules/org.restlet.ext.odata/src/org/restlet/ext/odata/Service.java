@@ -1389,9 +1389,9 @@ public class Service {
 											writeCollectionProperty(writer,
 													entity, value, prop, nullAttrs);
 										} else { // complex type
-											String packageName = entity.getClass().getName().split("\\.")[0];
+											EntityType type = ((Metadata) getMetadata()).getEntityType(entity.getClass());
 											// prefix the namespace for m:type 
-											packageName = packageName.toUpperCase() + "." ;
+											String packageName = type.getSchema().getNamespace().getName() + "." ;
 											typeAttr.addAttribute(
 													WCF_DATASERVICES_METADATA_NAMESPACE,
 													"type", "type", "string",packageName + 
