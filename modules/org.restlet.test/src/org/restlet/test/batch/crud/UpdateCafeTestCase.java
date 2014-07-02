@@ -2,6 +2,7 @@ package org.restlet.test.batch.crud;
 
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ws.rs.core.MultivaluedMap;
@@ -110,7 +111,7 @@ public class UpdateCafeTestCase extends RestletTestCase {
 			Response latestResponse = updatequery.getService().getLatestResponse();
 			assertTrue(latestResponse.getStatus().isSuccess());
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			LOGGER.log(Level.SEVERE, ex.getMessage());
 			Assert.fail();
 		}
 	}
