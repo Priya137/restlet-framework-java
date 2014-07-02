@@ -9,6 +9,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.XMLEvent;
 
+import org.restlet.Context;
 import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.ext.xml.format.XmlFormatParser;
 import org.restlet.representation.Representation;
@@ -79,11 +80,14 @@ public class JsonContentFunctionHandler extends XmlFormatParser implements Funct
 				return new Gson().fromJson(jsonStrBuilder.toString(), c);
 			}
 		} catch (XMLStreamException e) {
-			// TODO log exception
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the xml due to Stream Exception: " + e.getMessage());
 		} catch (IOException e) {
-			// TODO log exception
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the xml due to IO Exception: " + e.getMessage());
 		} catch (JsonSyntaxException e) {
-			// TODO log the exception
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the xml due to Json Syntax Exception: " + e.getMessage());
 		}
 		return null;
 	}

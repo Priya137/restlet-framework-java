@@ -12,6 +12,7 @@ import java.util.List;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import org.restlet.Context;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 
 /**
@@ -79,15 +80,20 @@ public class CollectionPropertyCursorHandler {
 				}
 			}
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the collection due to: " + e.getMessage());
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the collection due to: " + e.getMessage());
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the collection due to: " + e.getMessage());
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the collection due to: " + e.getMessage());
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the collection due to: " + e.getMessage());
 		}
 		return entity;
 	}

@@ -17,6 +17,7 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import org.restlet.Context;
 import org.restlet.data.Language;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -200,11 +201,14 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 
 			}
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the feed due to: " + e.getMessage());
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the feed due to: " + e.getMessage());
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the feed due to: " + e.getMessage());
 		}
 
 		return this.getFeed();
@@ -305,7 +309,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the properties due to: " + e.getMessage());
 			throw new RuntimeException();
 		}
 		return entity;
@@ -389,7 +394,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 
 			}
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the inner content due to: " + e.getMessage());
 		}
 		throw new RuntimeException();
 	}
@@ -519,7 +525,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 									break;
 								}
 							} catch (XMLStreamException e) {
-								e.printStackTrace();
+								Context.getCurrentLogger().warning(
+					                    "Cannot parse the entry due to: " + e.getMessage());
 							}
 						}
 					} else {
@@ -603,18 +610,22 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 									}
 								}
 							}catch (XMLStreamException e1) {
-								e1.printStackTrace();
+								Context.getCurrentLogger().warning(
+					                    "Cannot parse the entry due to: " + e1.getMessage());
 							} catch (Exception e1) {
-								e1.printStackTrace();
+								Context.getCurrentLogger().warning(
+					                    "Cannot parse the entry due to: " + e1.getMessage());
 							}
 						}
 						rt = e;
 					}
 				}
 			} catch (XMLStreamException e1) {
-				e1.printStackTrace();
+				Context.getCurrentLogger().warning(
+	                    "Cannot parse the entry due to: " + e1.getMessage());
 			} catch (Exception e1) {
-				e1.printStackTrace();
+				Context.getCurrentLogger().warning(
+	                    "Cannot parse the entry due to: " + e1.getMessage());
 			}
 
 		}
@@ -654,7 +665,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					break;
 				}
 			}catch (XMLStreamException e) {
-				e.printStackTrace();
+				Context.getCurrentLogger().warning(
+	                    "Cannot parse the author due to: " + e.getMessage());
 			}
 		}
 	}
@@ -710,7 +722,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
                                 value);
                     }
                 } catch (Exception e) {
-                  e.printStackTrace();
+					Context.getCurrentLogger().warning(
+		                    "Cannot parse the content due to: " + e.getMessage());
                 }
             }
         }
@@ -781,9 +794,11 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 			}
 			return rt;
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the atom link due to: " + e.getMessage());
 		} catch (Exception e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the atom link due to: " + e.getMessage());
 		}
 		return null;
 	}
@@ -829,15 +844,20 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				ReflectUtils.invokeSetter(entity, ReflectUtils.normalize(propertyName), o);
 			}
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the inline entities due to: " + e.getMessage());
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the inline entities due to: " + e.getMessage());
 		} catch (SecurityException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the inline entities due to: " + e.getMessage());
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the inline entities due to: " + e.getMessage());
 		} catch (Exception e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the inline entities due to: " + e.getMessage());
 		}
 	}
 	

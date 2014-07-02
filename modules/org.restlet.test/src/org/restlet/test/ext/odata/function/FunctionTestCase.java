@@ -4,6 +4,7 @@ package org.restlet.test.ext.odata.function;
 import junit.framework.Assert;
 
 import org.restlet.Component;
+import org.restlet.Context;
 import org.restlet.data.Protocol;
 import org.restlet.test.RestletTestCase;
 
@@ -46,8 +47,9 @@ public class FunctionTestCase extends RestletTestCase {
 		Nextval_t nextval = null;
 		try {
 			nextval = service.nextval("RCompany");
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Exception occurred while calling a function: " + e.getMessage());
 			Assert.fail();
 		}
 		assertEquals("534", nextval.getSysGenId().toString());

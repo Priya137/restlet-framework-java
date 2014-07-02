@@ -1505,19 +1505,13 @@ public class ClientResource extends Resource {
 		Representation representation = null;
 		try {
 			representation = toRepresentation(entity, null);
-			if (null == representation) {
-				// representation = new EmptyRepresentation();
-				// TODO: Onkar needs some fix here
-
-			}
 			if (null != contentType) {// set the contentType
 				representation.setMediaType(new MediaType(contentType));
 			}
 			representation.setSlugHeader(slugHeader);
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new ResourceException(e);
 		}
 		return post(representation);
 	}
@@ -2193,8 +2187,7 @@ public class ClientResource extends Resource {
 			}
 			representation.setSlugHeader(slugHeader);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new ResourceException(e);
 		}
 		return put(representation);
 	}
