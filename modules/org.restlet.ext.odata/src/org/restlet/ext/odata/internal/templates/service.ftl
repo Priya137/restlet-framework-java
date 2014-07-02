@@ -122,7 +122,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
      *	
      * @throws Exception 
      */
-    public <T> T addEntity(${type.className} entity) throws Exception {
+    public ${type.className} addEntity(${type.className} entity) throws Exception {
         return <#if entityContainer.defaultEntityContainer>addEntity("/${entitySet.name}", entity);<#else>addEntity("/${entityContainer.name}.${entitySet.name}", entity);</#if>
     }
 

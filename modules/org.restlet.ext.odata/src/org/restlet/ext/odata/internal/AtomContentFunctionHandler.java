@@ -10,6 +10,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import org.restlet.Context;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.xml.format.XmlFormatParser;
 import org.restlet.representation.Representation;
@@ -61,9 +62,11 @@ public class AtomContentFunctionHandler extends XmlFormatParser implements Funct
 				}
 			}
 		} catch (XMLStreamException e) {
-			//TODO log the exception
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the xml due to Stream Exception: " + e.getMessage());
 		} catch (IOException e) {
-			//TODO log the exception
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the xml due to IO Exception: " + e.getMessage());
 		}
 		return entity;
 	}

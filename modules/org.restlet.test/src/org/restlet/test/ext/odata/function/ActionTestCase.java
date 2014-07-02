@@ -7,6 +7,7 @@ import java.util.List;
 import junit.framework.Assert;
 
 import org.restlet.Component;
+import org.restlet.Context;
 import org.restlet.data.Protocol;
 import org.restlet.test.RestletTestCase;
 
@@ -51,8 +52,9 @@ public class ActionTestCase extends RestletTestCase {
   			doubleList.add(240.0);
   			doubleList.add(450.0);
   			 values = service.convertDoubleArray("1", "2", doubleList, new Double(1D));  			
-  		} catch (Exception ex) {
-  			ex.printStackTrace();
+  		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Exception occurred while calling a function: " + e.getMessage());
   			Assert.fail();
   		} 	
   		assertNotNull(values);

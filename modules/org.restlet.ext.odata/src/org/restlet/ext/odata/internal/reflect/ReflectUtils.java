@@ -552,7 +552,7 @@ public class ReflectUtils {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+            logger.warning("Can't get the property: " + e.getMessage());
 		}
 		return o;
 	}

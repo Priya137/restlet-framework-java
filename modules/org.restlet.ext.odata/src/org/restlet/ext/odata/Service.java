@@ -276,7 +276,8 @@ public class Service {
 				throw new ResourceException(re.getStatus(), "Can't add entity to this entity set "
 						+ resource.getReference());
 			} catch (Exception e) {
-				e.printStackTrace();
+				getLogger().log(Level.WARNING,
+	                    "Can't add the entity : " + " due to " + e.getMessage());
 			}finally {
 				isPostRequest = Boolean.FALSE;
 				this.latestRequest = resource.getRequest();
@@ -1368,9 +1369,11 @@ public class Service {
 									}
 								}
 							} catch (SecurityException e) {
-								e.printStackTrace();
+								getLogger().warning(
+				                        "Can't write the collection property: " + e.getMessage());
 							} catch (NoSuchFieldException e) {
-								e.printStackTrace();
+								getLogger().warning(
+				                        "Can't write the collection property: " + e.getMessage());
 							}
 						}
                     }
@@ -1389,6 +1392,8 @@ public class Service {
 									value = method.invoke(entity,
 											(Object[]) null);
 								} catch (Exception e) {
+									getLogger().warning(
+					                        "Error occurred while invoking the method : " + e.getMessage());
 								}
 
 								if (value != null) {
@@ -1539,8 +1544,9 @@ public class Service {
 						try {
 							// merge request should not contain data for stream property, so setting it to null.
 							ReflectUtils.invokeSetter(entity, prop.getNormalizedName(), null);
-						} catch (Exception e) {							
-							e.printStackTrace();
+						} catch (Exception e) {		
+							getLogger().warning(
+			                        "Can't merge the object: " + e.getMessage());
 						}
 					break;
 				}
@@ -1574,7 +1580,8 @@ public class Service {
 			throw new ResourceException(re.getStatus(),
 					"Can't update this entity " + resource.getReference());
 		} catch (IOException io) {
-			io.printStackTrace();
+			getLogger().warning(
+                    "IO exception while merging the entity: " + io.getMessage());
         } finally {
             this.latestRequest = resource.getRequest();
             this.latestResponse = resource.getResponse();
