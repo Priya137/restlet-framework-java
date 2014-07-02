@@ -1,18 +1,4 @@
-HTTP/1.1 202 Accepted
-Server: Apache-Coyote/1.1
-DataServiceVersion: 3.0
-Content-Type: multipart/mixed;boundary=batchresponse_1f82a90b-43f1-4276-b20a-59da3437dfa8
-Transfer-Encoding: chunked
-Date: Tue, 23 June 2014 09:44:08 GMT
-Proxy-Connection: Keep-Alive
-Connection: Keep-Alive
 
---batchresponse_1f82a90b-43f1-4276-b20a-59da3437dfa8
-Content-Type: multipart/mixed; boundary=changesetresponse_300ccaf5-bad8-44f9-a426-eb97b8ea9389
-
---changesetresponse_300ccaf5-bad8-44f9-a426-eb97b8ea9389
-Content-Type: application/http
-Content-Transfer-Encoding: binary
 
 HTTP/1.1 200 OK
 Content-Type: application/atom+xml;charset=utf-8
@@ -39,7 +25,3 @@ xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xml:base="http:/
 
 </m:properties>
 </content></entry>
-
---changesetresponse_300ccaf5-bad8-44f9-a426-eb97b8ea9389--
-
---batchresponse_1f82a90b-43f1-4276-b20a-59da3437dfa8--
