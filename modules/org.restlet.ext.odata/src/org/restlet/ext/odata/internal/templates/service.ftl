@@ -84,7 +84,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
         super("${dataServiceUri}");
         this.functionContentHandler = new JsonContentFunctionHandler();
         <#if challengeScheme??>
-        super.setCredentials(new ChallengeResponse(${challengeScheme}, "${userName}", "${password}"));
+        super.setCredentials(new ChallengeResponse(${challengeScheme}, "${userName}", "${password}"));        
         </#if>
     }
     
