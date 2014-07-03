@@ -200,7 +200,7 @@ public class Generator {
 	 *            The list of arguments.
 	 */
 	public static void main(String[] args) {
-				
+						
 		System.out.println("---------------------------");
 		System.out.println("OData client code generator");
 		System.out.println("---------------------------");
