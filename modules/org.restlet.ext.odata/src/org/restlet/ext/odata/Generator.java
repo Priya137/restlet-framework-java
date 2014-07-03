@@ -38,6 +38,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -74,43 +76,146 @@ import freemarker.template.Configuration;
  */
 public class Generator {
 
-	public final static String SERVICE_URL = "serviceUrl";
-	public final static String USERNAME = "userName";
-	public final static String PASSWORD = "password";
-	public final static String CHALLENGE_SCHEME = "challengeScheme";
-	public final static String SERVICE_CLASSNAME = "serviceClassName";
-	public final static String SERVICE_CLASS_DIR = "serviceClassDir";
-	public final static String ENTITY_CLASS_DIR = "entityClassDir";
-	
-    /**
-     * Takes seven parameters:<br>
-     * <ol>
-     * <li>The URI of the OData service</li>
-     * <li>Username to access OData service</li>
-     * <li>Password to access OData service</li>
-     * <li>ChallangeScheme - Possible values HTTP_BASIC, HTTP_NEGOTIATE, if not provided then HTTP_BASIC will be used as default.</li>
-     * <li>Service class name</li>
-     * <li>The output directory for Service class generation (For example : src/com/ow/service), 
-     *       if no directory is provided class will be generated in the default package.</li>
-     * <li>The output directory for Entity class generation (For example : src/com/ow/entities), 
-     *       if no directory is provided schema name will be used as default package.</li>
-     * </ol>
-     * 
-     * @param args
-     *            The list of arguments.
-     */
-    public static void main(String[] args) {
-    	
+	/** The Constant SERVICE_URL. */
+	private final static String SERVICE_URL = "serviceUrl";
+
+	/** The Constant USERNAME. */
+	private final static String USERNAME = "userName";
+
+	/** The Constant PASSWORD. */
+	private final static String PASSWORD = "password";
+
+	/** The Constant CHALLENGE_SCHEME. */
+	private final static String CHALLENGE_SCHEME = "challengeScheme";
+
+	/** The Constant SERVICE_CLASSNAME. */
+	private final static String SERVICE_CLASSNAME = "serviceClassName";
+
+	/** The Constant SERVICE_CLASS_DIR. */
+	private final static String SERVICE_CLASS_DIR = "serviceClassDir";
+
+	/** The Constant ENTITY_CLASS_DIR. */
+	private final static String ENTITY_CLASS_DIR = "entityClassDir";
+
+	/** The URI of the target data service. */
+	private Reference serviceUrl;
+
+	/** The user name. */
+	private static String userName;
+
+	/** The password. */
+	private static String password;
+
+	/** The challenge scheme. */
+	private static ChallengeScheme challengeScheme;
+
+	/** The name of the service class (in case there is only one in the schema). */
+	private static String serviceClassName;
+
+	/** The entity pkg. */
+	private static String entityPkg;
+
+	/** The service pkg. */
+	private static String servicePkg;
+
+	/** The package dir where entity classes are generated. */
+	private static File packageDir;
+
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = Logger
+			.getLogger(Generator.class.getName());
+
+
+	/**
+	 * Default Constructor.
+	 * 
+	 * @param serviceRef
+	 *            The URI of the OData service.
+	 */
+	public Generator(Reference serviceRef) {
+		this(serviceRef, null);
+	}
+
+	/**
+	 * Constructor. The name of the service class can be provided if there is
+	 * only one service defined in the metadata.
+	 * 
+	 * @param serviceRef
+	 *            The URI of the OData service.
+	 * @param serviceClassName
+	 *            The name of the service class (in case there is only one in
+	 *            the metadata).
+	 */
+	public Generator(Reference serviceRef, String serviceClassName) {
+		super();
+		this.serviceUrl = serviceRef;
+		if (serviceClassName != null) {
+			Generator.serviceClassName = ReflectUtils.normalize(serviceClassName);
+			Generator.serviceClassName = Generator.serviceClassName.substring(0, 1)
+					.toUpperCase() + Generator.serviceClassName.substring(1);
+		}
+
+	}
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param serviceUri
+	 *            The URI of the OData service.
+	 */
+	public Generator(String serviceUri) {
+		this(serviceUri, null);
+	}
+
+	/**
+	 * Constructor. The name of the service class can be provided if there is
+	 * only one service defined in the metadata.
+	 * 
+	 * @param serviceUri
+	 *            The URI of the OData service.
+	 * @param serviceClassName
+	 *            The name of the service class (in case there is only one in
+	 *            the metadata).
+	 */
+	public Generator(String serviceUri, String serviceClassName) {
+		this(new Reference(serviceUri), serviceClassName);
+	}
+
+
+	/**
+	 * Takes seven parameters:<br>
+	 * <ol>
+	 * <li>The URI of the OData service</li>
+	 * <li>Username to access OData service</li>
+	 * <li>Password to access OData service</li>
+	 * <li>ChallangeScheme - Possible values HTTP_BASIC, HTTP_NEGOTIATE, if not provided then HTTP_BASIC will be used as default.</li>
+	 * <li>Service class name</li>
+	 * <li>The output directory for Service class generation (For example : src/com/ow/service), 
+	 *       if no directory is provided class will be generated in the default package.</li>
+	 * <li>The output directory for Entity class generation (For example : src/com/ow/entities), 
+	 *       if no directory is provided schema name will be used as default package.</li>
+	 * </ol>
+	 * 
+	 * @param args
+	 *            The list of arguments.
+	 */
+	public static void main(String[] args) {
+				
+		System.out.println("---------------------------");
+		System.out.println("OData client code generator");
+		System.out.println("---------------------------");
+		System.out.println("step 1 - check parameters");
+
 		String errorMessage = null;
 		File entityClassDir = null;
 		File serviceDir = null;
-		
+
 		final CommandLineParser parser = new BasicParser();
-	    final Options options = new Options();
+		final Options options = new Options();
 		setCommandLineOptions(options);
-	    
-	    CommandLine commandLine = null;
-	    // try to parse and validate the passed arguments using apache commons cli.
+
+		CommandLine commandLine = null;
+		// try to parse and validate the passed arguments using apache commons cli.
 		try {
 			commandLine = parser.parse(options, args);
 		} catch (ParseException e) {
@@ -120,18 +225,19 @@ public class Generator {
 
 		userName = getOption(USERNAME, commandLine);
 		password = getOption(PASSWORD, commandLine);
-		challengeScheme = ((getOption(CHALLENGE_SCHEME, commandLine) == null || getOption(
-				CHALLENGE_SCHEME, commandLine).equals("")) ? ChallengeScheme.HTTP_BASIC
+		challengeScheme = (getOption(CHALLENGE_SCHEME, commandLine) == null ? null
 				: ChallengeScheme.valueOf(getOption(CHALLENGE_SCHEME, commandLine)));
-		
+
 		serviceClassName = getOption(SERVICE_CLASSNAME, commandLine);
-		
-		if (!"".equals(getOption(SERVICE_CLASS_DIR, commandLine))) {
+
+		if (getOption(SERVICE_CLASS_DIR, commandLine) != null) {
 			serviceDir = new File(getOption(SERVICE_CLASS_DIR, commandLine));
 			servicePkg = getOption(SERVICE_CLASS_DIR, commandLine).substring(4, getOption(SERVICE_CLASS_DIR, commandLine).length());
 		} else {
 			try {
 				serviceDir = new File(".").getCanonicalFile();
+				// set package name to blank if user did not pass this option
+				servicePkg = "";
 			} catch (IOException e) {
 				errorMessage = "Unable to get the target directory for service generation. "
 						+ e.getMessage();
@@ -139,6 +245,7 @@ public class Generator {
 		}
 
 		if (serviceDir.exists()) {
+			System.out.println("step 2 - check the service directory");
 			if (!serviceDir.isDirectory()) {
 				errorMessage = serviceDir.getPath()
 						+ " is not a valid directory.";
@@ -146,232 +253,133 @@ public class Generator {
 
 		} else {
 			try {
+				System.out.println("step 2 - create the service directory");
 				serviceDir.mkdirs();
 			} catch (Throwable e) {
 				errorMessage = "Cannot create " + serviceDir.getPath()
 						+ " due to: " + e.getMessage();
 			}
 		}
-		
-		if (!"".equals(getOption(ENTITY_CLASS_DIR, commandLine))) {
-            entityClassDir = new File(getOption(ENTITY_CLASS_DIR, commandLine));
-            entityPkg = getOption(ENTITY_CLASS_DIR, commandLine).substring(4, getOption(ENTITY_CLASS_DIR, commandLine).length());
-        } else {
-            try {
-            	entityClassDir = new File(".").getCanonicalFile();
-            } catch (IOException e) {
-                errorMessage = "Unable to get the target directory. "
-                        + e.getMessage();
-            }
-        }
 
-        if (entityClassDir.exists()) {
-            if (!entityClassDir.isDirectory()) {
-                errorMessage = entityClassDir.getPath()
-                        + " is not a valid directory.";
-            }
+		if (getOption(ENTITY_CLASS_DIR, commandLine) != null) {
+			entityClassDir = new File(getOption(ENTITY_CLASS_DIR, commandLine));
+			entityPkg = getOption(ENTITY_CLASS_DIR, commandLine).substring(4, getOption(ENTITY_CLASS_DIR, commandLine).length());
+		}
 
-        } else {
-            try {
-            	entityClassDir.mkdirs();
-            } catch (Throwable e) {
-                errorMessage = "Cannot create " + entityClassDir.getPath()
-                        + " due to: " + e.getMessage();
-            }
-        }
-        
-        if (errorMessage == null) {
-            dataServiceUri = getOption(SERVICE_URL, commandLine);
+		if (errorMessage == null) {
+			System.out.println("step 4 - get the metadata descriptor");
+			String dataServiceUri = getOption(SERVICE_URL, commandLine);
 
-            if (dataServiceUri.endsWith("$metadata")) {
-                dataServiceUri = dataServiceUri.substring(0, dataServiceUri.length() - 10);
-            } else if (dataServiceUri.endsWith("/")) {
-                dataServiceUri = dataServiceUri.substring(0, dataServiceUri.length() - 1);
-            }
+			if (dataServiceUri.endsWith("$metadata")) {
+				dataServiceUri = dataServiceUri.substring(0, dataServiceUri.length() - 10);
+			} else if (dataServiceUri.endsWith("/")) {
+				dataServiceUri = dataServiceUri.substring(0, dataServiceUri.length() - 1);
+			}
 
-            Service service = new Service(dataServiceUri);
-            service.setCredentials(new ChallengeResponse(challengeScheme, userName,
-    				password));
-            if (service.getMetadata() == null) {
-                errorMessage = "Cannot retrieve the metadata.";
-            } else {
-                System.out.println("step 4 - generate source code");
-                Generator svcUtil = new Generator(service.getServiceRef());
-                
-                try {
-                    svcUtil.generate(entityClassDir, serviceDir);
-                    System.out
-                            .print("The source code has been generated in directory: ");
-                    System.out.println(entityClassDir.getPath());
-                } catch (Exception e) {
-                    errorMessage = "Cannot generate the source code in directory: "
-                            + entityClassDir.getPath();
-                }
-            }
-        }
-    }
-    
-    /**
-     * Sets the command line options.
-     *
-     * @param options the new command line options
-     */
-    private static void setCommandLineOptions(Options options) {
-    	
-    	/** Creates an Option for serviceUrl using the specified parameters  */
-	    Option serviceUrlOption = new Option("a", SERVICE_URL, true, "The URI of the OData service");
-	    serviceUrlOption.setRequired(true);
-	    options.addOption(serviceUrlOption);
-	    
-	    /** Creates an Option for userName  */
-	    Option userNameOption = new Option("b", USERNAME, true, "Username to access OData service");
-	    userNameOption.setRequired(true);
-	    options.addOption(userNameOption);
-	    
-	    /** Creates an Option for password  */
-	    Option passwordOption = new Option("c", PASSWORD, true, "Password to access OData service");
-	    passwordOption.setRequired(true);
-	    options.addOption(passwordOption);
-	    
-	    /** Creates an Option for challangeScheme  */
-	    Option challangeSchemeOption = new Option("d", CHALLENGE_SCHEME, true, "ChallengeScheme - Possible values HTTP_BASIC, HTTP_NEGOTIATE, if not provided then HTTP_BASIC will be used as default");
-	    options.addOption(challangeSchemeOption);
-	    
-	    /** Creates an Option for sreviceClassName */
-	    Option sreviceClassNameOption = new Option("e", SERVICE_CLASSNAME, true, "Service class name");
-	    sreviceClassNameOption.setRequired(true);
-	    options.addOption(sreviceClassNameOption);
-	    
-	    /** Creates an Option for serviceClassDir */
-	    Option serviceClassDirOption = new Option("f", SERVICE_CLASS_DIR, true, "The output directory for Service class generation (For example : src/com/edm/entities)");
-	    options.addOption(serviceClassDirOption);
-	    
-	    /** Creates an Option for entityClassDir */
-	    Option entityClassDirOption = new Option("g", ENTITY_CLASS_DIR, true, "The output directory for Entity class generation (For example : src/com/edm/entities");
-	    options.addOption(entityClassDirOption);
-		
+			Service service = new Service(dataServiceUri);
+			if(challengeScheme != null && userName != null && password != null){
+				service.setCredentials(new ChallengeResponse(challengeScheme, userName,
+						password));
+			}
+			if (service.getMetadata() == null) {
+				errorMessage = "Cannot retrieve the metadata.";
+			} else {
+				System.out.println("step 5 - generate source code");
+				Generator svcUtil = new Generator(service.getServiceRef());
+
+				try {
+					svcUtil.generate(entityClassDir, serviceDir);
+					System.out.print("The source code has been generated in directory: ");
+					System.out.println(packageDir.getPath());
+				} catch (Exception e) {
+					errorMessage = "Cannot generate the source code in directory: "
+							+ packageDir.getPath();                    
+				}
+			}
+		}	else{
+			LOGGER.log(Level.SEVERE,errorMessage);	
+		}
 	}
-    
-    /**
-     * Prints the usage.
-     *
-     * @param options the options
-     */
-    public static void printUsage(Options options)
+
+	/**
+	 * Sets the command line options.
+	 *
+	 * @param options the new command line options
+	 */
+	private static void setCommandLineOptions(Options options) {
+
+		/** Creates an Option for serviceUrl using the specified parameters  */
+		Option serviceUrlOption = new Option("su", SERVICE_URL, true, "The URI of the OData service");
+		serviceUrlOption.setRequired(true);
+		options.addOption(serviceUrlOption);
+
+		/** Creates an Option for userName  */
+		Option userNameOption = new Option("ur", USERNAME, true, "Username to access OData service");
+		options.addOption(userNameOption);
+
+		/** Creates an Option for password  */
+		Option passwordOption = new Option("pw", PASSWORD, true, "Password to access OData service");
+		options.addOption(passwordOption);
+
+		/** Creates an Option for challangeScheme  */
+		Option challangeSchemeOption = new Option("cs", CHALLENGE_SCHEME, true, "ChallengeScheme - Possible values HTTP_BASIC, HTTP_NEGOTIATE, if not provided then no authentication will be used");
+		options.addOption(challangeSchemeOption);
+
+		/** Creates an Option for sreviceClassName */
+		Option sreviceClassNameOption = new Option("sc", SERVICE_CLASSNAME, true, "Service class name");
+		options.addOption(sreviceClassNameOption);
+
+		/** Creates an Option for serviceClassDir */
+		Option serviceClassDirOption = new Option("sd", SERVICE_CLASS_DIR, true, "The output directory for Service class generation (For example : src/com/edm/entities)");
+		options.addOption(serviceClassDirOption);
+
+		/** Creates an Option for entityClassDir */
+		Option entityClassDirOption = new Option("ed", ENTITY_CLASS_DIR, true, "The output directory for Entity class generation (For example : src/com/edm/entities");
+		options.addOption(entityClassDirOption);
+
+	}
+
+	/**
+	 * Prints the usage.
+	 *
+	 * @param options the options
+	 */
+	public static void printUsage(Options options)
 	{
 		HelpFormatter formatter = new HelpFormatter();
 		formatter.printHelp("available options as follow : ", options );
 		System.exit(1);
 	}
 
-    /**
-     *  To retrieve argument for the Option.
-     *
-     * @param option the option
-     * @param commandLine the command line
-     * @return the option
-     */
+	/**
+	 *  To retrieve argument for the Option.
+	 *
+	 * @param option the option
+	 * @param commandLine the command line
+	 * @return the option
+	 */
 	public static String getOption(final String option, final CommandLine commandLine) {
 
-	    if (commandLine.hasOption(option)) {
-	        return commandLine.getOptionValue(option);
-	    }
+		if (commandLine.hasOption(option)) {
+			return commandLine.getOptionValue(option);
+		}
 
-	    return "";
+		return null;
 	}
 
-    /** The name of the service class (in case there is only one in the schema). */
-    private static String serviceClassName;
-
-    /** The URI of the target data service. */
-    private Reference serviceRef;
-    
-    /** The data service uri. */
-    private static String dataServiceUri;
-    
-    /** The user name. */
-    private static String userName;
-    
-	/** The password. */
-	private static String password;
-	
-	/** The entity pkg. */
-	private static String entityPkg;
-	
-	/** The service pkg. */
-	private static String servicePkg;
-	
-	/** The challenge scheme. */
-	private static ChallengeScheme challengeScheme;
-	
-
-    /**
-     * Constructor.
-     * 
-     * @param serviceRef
-     *            The URI of the OData service.
-     */
-    public Generator(Reference serviceRef) {
-        this(serviceRef, null);
-    }
-
-    /**
-     * Constructor. The name of the service class can be provided if there is
-     * only one service defined in the metadata.
-     * 
-     * @param serviceRef
-     *            The URI of the OData service.
-     * @param serviceClassName
-     *            The name of the service class (in case there is only one in
-     *            the metadata).
-     */
-    public Generator(Reference serviceRef, String serviceClassName) {
-        super();
-        this.serviceRef = serviceRef;
-        if (serviceClassName != null) {
-            Generator.serviceClassName = ReflectUtils.normalize(serviceClassName);
-            Generator.serviceClassName = Generator.serviceClassName.substring(0, 1)
-                    .toUpperCase() + Generator.serviceClassName.substring(1);
-        }
-
-    }
-
-    /**
-     * Constructor.
-     * 
-     * @param serviceUri
-     *            The URI of the OData service.
-     */
-    public Generator(String serviceUri) {
-        this(serviceUri, null);
-    }
-
-    /**
-     * Constructor. The name of the service class can be provided if there is
-     * only one service defined in the metadata.
-     * 
-     * @param serviceUri
-     *            The URI of the OData service.
-     * @param serviceClassName
-     *            The name of the service class (in case there is only one in
-     *            the metadata).
-     */
-    public Generator(String serviceUri, String serviceClassName) {
-        this(new Reference(serviceUri), serviceClassName);
-    }
-
-    /**
-     * Generates the client code to the given output directory.
-     *
-     * @param outputDir            The output directory.
-     * @param serviceDir the service dir
-     * @throws Exception the exception
-     */
-    public void generate(File outputDir, File serviceDir) throws Exception {
-		Service service = new Service(serviceRef);
-		service.setCredentials(new ChallengeResponse(challengeScheme, userName,
-				password));
-
+	/**
+	 * Generates the client code to the given output directory.
+	 *
+	 * @param outputDir            The output directory.
+	 * @param serviceDir the service dir
+	 * @throws Exception the exception
+	 */
+	public void generate(File outputDir, File serviceDir) throws Exception {
+		Service service = new Service(serviceUrl);
+		if(challengeScheme != null && userName != null && password != null){
+			service.setCredentials(new ChallengeResponse(challengeScheme, userName,
+					password));
+		}
 		Configuration fmc = new Configuration();
 		fmc.setDefaultEncoding(CharacterSet.UTF_8.getName());
 
@@ -379,25 +387,25 @@ public class Generator {
 		String rootTemplates = "clap://class/org/restlet/ext/odata/internal/templates";
 		Representation complexTmpl = new StringRepresentation(
 				new ClientResource(rootTemplates + "/complexType.ftl").get()
-						.getText());
+				.getText());
 		Representation entityTmpl = new StringRepresentation(
 				new ClientResource(rootTemplates + "/entityType.ftl").get()
-						.getText());
+				.getText());
 		Representation serviceTmpl = new StringRepresentation(
 				new ClientResource(rootTemplates + "/service.ftl").get()
-						.getText());
+				.getText());
 
 		Metadata metadata = (Metadata) service.getMetadata();
 		for (Schema schema : metadata.getSchemas()) {
 			if ((schema.getEntityTypes() != null && !schema.getEntityTypes()
 					.isEmpty())
 					|| (schema.getComplexTypes() != null && !schema
-							.getComplexTypes().isEmpty())) {
-				
-				File packageDir = outputDir != null ? outputDir : new File(
+					.getComplexTypes().isEmpty())) {
+
+				packageDir = outputDir != null ? outputDir : new File(
 						TypeUtils.getPackageName(schema));
 				packageDir.mkdirs();
-				
+
 				String packageName = outputDir != null ? (entityPkg.replace(
 						"/", ".")) : TypeUtils.getPackageName(schema);
 				// For each entity type
@@ -415,16 +423,16 @@ public class Generator {
 								entityTmpl, fmc, dataModel,
 								MediaType.TEXT_PLAIN);
 						templateRepresentation
-								.setCharacterSet(CharacterSet.UTF_8);
+						.setCharacterSet(CharacterSet.UTF_8);
 
 						// Write the template representation as a Java class
 						templateRepresentation.write(new FileOutputStream(
 								new File(packageDir, type.getClassName()
 										+ ".java")));
 					} catch (Exception e) {
-						System.out
-						.println("Exception Occurred in generating entity type for - "
-								+ type.getClassName());
+						String errormsg = "Exception Occurred in generating entity type for - "
+								+ type.getClassName();
+						 LOGGER.log(Level.SEVERE,errormsg);
 					}
 
 				}
@@ -444,16 +452,16 @@ public class Generator {
 								MediaType.TEXT_PLAIN);
 
 						templateRepresentation
-								.setCharacterSet(CharacterSet.UTF_8);
+						.setCharacterSet(CharacterSet.UTF_8);
 
 						// Write the template representation as a Java class
 						templateRepresentation.write(new FileOutputStream(
 								new File(packageDir, type.getClassName()
 										+ ".java")));
 					} catch (Exception e) {
-						System.out
-								.println("Exception Occurred in generating complex type for - "
-										+ type.getClassName());
+						String errormsg = "Exception Occurred in generating complex type for - "
+								+ type.getClassName();
+						LOGGER.log(Level.SEVERE,errormsg);
 					}
 				}
 			}
@@ -495,7 +503,7 @@ public class Generator {
 				dataModel.put("schema", schema);
 				dataModel.put("metadata", metadata);
 				dataModel.put("className", className);
-				dataModel.put(CHALLENGE_SCHEME, "ChallengeScheme."+challengeScheme.getName());
+				dataModel.put(CHALLENGE_SCHEME, challengeScheme != null ? "ChallengeScheme."+challengeScheme.getName() : null);
 				dataModel.put(USERNAME, userName);
 				dataModel.put(PASSWORD, password);
 				dataModel.put("dataServiceUri", service.getServiceRef()
@@ -514,21 +522,21 @@ public class Generator {
 					templateRepresentation.write(new FileOutputStream(new File(
 							serviceDir, className + ".java")));
 				} catch (Exception e) {
-					System.out
-							.println("Exception Occurred in generating Service class for - "
-									+ className);
+					String errormsg = "Exception Occurred in generating Service class for - "
+							+ className;
+					LOGGER.log(Level.SEVERE,errormsg);
 				}
 			}
 		}
 	}
 
-    /**
-     * Generates the client code to the given output directory.
-     *
-     * @param outputDir            The output directory.
-     * @throws Exception the exception
-     */
-    public void generate(String outputDir) throws Exception {
-        generate(new File(outputDir), new File(outputDir));
-    }
+	/**
+	 * Generates the client code to the given output directory.
+	 *
+	 * @param outputDir            The output directory.
+	 * @throws Exception the exception
+	 */
+	public void generate(String outputDir) throws Exception {
+		generate(new File(outputDir), new File(outputDir));
+	}
 }
