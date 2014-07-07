@@ -83,14 +83,18 @@ public class ${className} extends org.restlet.ext.odata.Service {
     public ${className}() {
         super("${dataServiceUri}");
         this.functionContentHandler = new JsonContentFunctionHandler();
-        super.setCredentials(new ChallengeResponse(${challengeScheme}, "${userName}", "${password}"));
+        <#if challengeScheme??>
+        super.setCredentials(new ChallengeResponse(${challengeScheme}, "${userName}", "${password}"));        
+        </#if>
     }
     
+    <#if challengeScheme??>
     public ${className}(String serviceUrl, String userName, String password) {
         super(serviceUrl);
         this.functionContentHandler = new JsonContentFunctionHandler();
         super.setCredentials(new ChallengeResponse(${challengeScheme}, userName, password));
     }
+    </#if>
     
     public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs) {
         super(serviceUrl);
@@ -98,11 +102,13 @@ public class ${className} extends org.restlet.ext.odata.Service {
         super.setCredentials(new ChallengeResponse(cs, userName, password));
     }
     
+    <#if challengeScheme??>
     public ${className}(String serviceUrl, String userName, String password, FunctionContentHandler functionContentHandler) {
         super(serviceUrl);
         this.functionContentHandler = functionContentHandler;
         super.setCredentials(new ChallengeResponse(${challengeScheme}, userName, password));
     }
+	</#if>
     
     public ${className}(String serviceUrl, String userName, String password, ChallengeScheme cs, FunctionContentHandler functionContentHandler) {
         super(serviceUrl);
