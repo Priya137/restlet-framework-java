@@ -9,6 +9,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Metadata;
 import org.restlet.data.Reference;
@@ -159,11 +160,14 @@ public class AtomFeedCursorHandler<T> extends XmlFormatParser implements
 
 			}
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the feed due to: " + e.getMessage());
 		} catch (InstantiationException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the feed due to: " + e.getMessage());
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the feed due to: " + e.getMessage());
 		}
 
 		return feed;
@@ -230,7 +234,8 @@ public class AtomFeedCursorHandler<T> extends XmlFormatParser implements
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the properties due to: " + e.getMessage());
 			throw new RuntimeException();
 		}
 		return entity;
@@ -373,7 +378,8 @@ public class AtomFeedCursorHandler<T> extends XmlFormatParser implements
 									break;
 								}
 							} catch (Exception e) {
-								e.printStackTrace();
+								Context.getCurrentLogger().warning(
+					                    "Cannot parse the Entry due to: " + e.getMessage());
 							}
 						}
 					} else {
@@ -384,8 +390,9 @@ public class AtomFeedCursorHandler<T> extends XmlFormatParser implements
 					}
 				}
 			} // end while
-		} catch (XMLStreamException e1) {
-			e1.printStackTrace();
+		} catch (XMLStreamException e) {
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the Entry due to: " + e.getMessage());
 		}
 		throw new RuntimeException();
 	}
@@ -442,9 +449,11 @@ public class AtomFeedCursorHandler<T> extends XmlFormatParser implements
 			}
 			return rt;
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the atom link due to: " + e.getMessage());
 		} catch (Exception e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the atom link due to: " + e.getMessage());
 		}
 		return null;
 	}

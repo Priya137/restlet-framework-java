@@ -3,6 +3,7 @@ package org.restlet.test.ext.odata.crud;
 import junit.framework.Assert;
 
 import org.restlet.Component;
+import org.restlet.Context;
 import org.restlet.Response;
 import org.restlet.data.Protocol;
 import org.restlet.data.Status;
@@ -56,8 +57,9 @@ public class ODataCafeCrudTestCase extends RestletTestCase {
 		cafe.setZipCode(111111);
 		try {
 			service.addEntity(cafe);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Cannot add entity due to: " + e.getMessage());
 			Assert.fail();
 		}
 
@@ -73,8 +75,9 @@ public class ODataCafeCrudTestCase extends RestletTestCase {
 
 		try {
 			service.updateEntity(cafe1);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Cannot update entity due to: " + e.getMessage());
 			Assert.fail();
 		}
 
@@ -87,8 +90,9 @@ public class ODataCafeCrudTestCase extends RestletTestCase {
 		// Delete
 		try {
 			service.deleteEntity(cafe2);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Cannot delete entity due to: " + e.getMessage());
 			Assert.fail();
 		}
 		latestResponse = query3.getService().getLatestResponse();

@@ -177,7 +177,7 @@ public class BatchRequestImpl implements BatchRequest {
 		List<BatchResponse> batchResultList = new ArrayList<BatchResponse>(
 				list.size());
 
-		MediaType mediaType = ((WrapperRepresentation) r).getMediaType();
+		MediaType mediaType = r.getMediaType();
 		Multipart baseMultiPart = RestletBatchRequestHelper.createMultipart(
 				r.getStream(), mediaType);
 		int i = 0;

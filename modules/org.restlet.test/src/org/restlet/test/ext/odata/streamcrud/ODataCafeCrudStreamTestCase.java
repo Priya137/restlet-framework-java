@@ -9,6 +9,7 @@ import java.io.InputStream;
 import junit.framework.Assert;
 
 import org.restlet.Component;
+import org.restlet.Context;
 import org.restlet.Response;
 import org.restlet.data.Protocol;
 import org.restlet.data.Status;
@@ -68,8 +69,9 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
 			attachment = new StreamReference(contentType, inputStream);
 			cafe.setAttachment(attachment);
 			service.addEntity(cafe);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Exception occurred while adding entity: " + e.getMessage());
 			Assert.fail();
 		}
 		
@@ -86,7 +88,8 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
         try {
 			inputStream=  attachment.getInputStream(service);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Exception occurred while reading input stream: " + e.getMessage());
 			Assert.fail();
 		}
         assertNotNull(inputStream);   
@@ -105,8 +108,9 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
         
         try {
 			service.updateEntity(cafe1);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Exception occurred while updating entity: " + e.getMessage());
 			Assert.fail();
 		}       
         
@@ -124,7 +128,8 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
 		try {
 			inputStream = attachment.getInputStream(service);
 		} catch (IOException e) {
-			e.printStackTrace();
+			Context.getCurrentLogger().warning(
+                    "Exception occurred while fetching inputstream: " + e.getMessage());
 			Assert.fail();
 		}
 		assertNotNull(inputStream);
@@ -134,8 +139,9 @@ public class ODataCafeCrudStreamTestCase extends RestletTestCase {
 		Cafe cafe3 = query4.iterator().next();
 		 try {
 				service.deleteEntity(cafe3);
-			} catch (Exception ex) {
-				ex.printStackTrace();
+			} catch (Exception e) {
+				Context.getCurrentLogger().warning(
+	                    "Exception occurred while deleting entity: " + e.getMessage());
 				Assert.fail();
 			}
 		 latestResponse = query4.getService().getLatestResponse();
