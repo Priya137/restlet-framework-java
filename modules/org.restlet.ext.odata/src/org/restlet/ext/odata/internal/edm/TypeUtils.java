@@ -710,13 +710,10 @@ public class TypeUtils {
 				return javaClass.getName();
 			} else {
 				String[] split = edmType.split("\\.");
-				String lower = split[0].toLowerCase();
 				StringBuilder sb = new StringBuilder();
-				sb.append(lower).append(".");
 				for (int i = 1; i < split.length; i++) {
-					sb.append(split[i]).append(".");
+					sb.append(split[i]);
 				}
-				sb.deleteCharAt(sb.length() - 1);
 				return sb.toString();
 			}
 		} catch (Exception e) {
