@@ -267,7 +267,7 @@ public class Generator {
 		}
 
 		if (errorMessage == null) {
-			System.out.println("step 4 - get the metadata descriptor");
+			System.out.println("step 3 - get the metadata descriptor");
 			String dataServiceUri = getOption(SERVICE_URL, commandLine);
 
 			if (dataServiceUri.endsWith("$metadata")) {
@@ -284,7 +284,7 @@ public class Generator {
 			if (service.getMetadata() == null) {
 				errorMessage = "Cannot retrieve the metadata.";
 			} else {
-				System.out.println("step 5 - generate source code");
+				System.out.println("step 4 - generate source code");
 				Generator svcUtil = new Generator(service.getServiceRef());
 
 				try {

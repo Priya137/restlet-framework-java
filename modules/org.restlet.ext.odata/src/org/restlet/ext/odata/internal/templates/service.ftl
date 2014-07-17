@@ -217,15 +217,6 @@ public class ${className} extends org.restlet.ext.odata.Service {
 
         return null;
     }
-    
-     /**
-     * Returns the instance of BatchRequestImpl for batch requests.
-     * 
-     * @return The reference of the binary representation of the given entity.
-     */
-   	public BatchRequest createBatchRequest(){
-		return new BatchRequestImpl(this);
-	}
 
     /**
      * Sets the value of the given media entry link.
@@ -248,6 +239,15 @@ public class ${className} extends org.restlet.ext.odata.Service {
     </#if>
 </#list>
 
+	/**
+     * Returns the instance of BatchRequestImpl for batch requests.
+     * 
+     * @return The reference of the binary representation of the given entity.
+     */
+   	public BatchRequest createBatchRequest(){
+		return new BatchRequestImpl(this);
+	}
+	
 <#list entityContainer.functionImports as functionImport>
    <#if functionImport.complex>
 	public ${functionImport.javaReturnType} ${functionImport.name}(
