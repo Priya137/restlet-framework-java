@@ -106,7 +106,7 @@ public class TypeUtils {
             } else if (adoNetType.endsWith("Time")) {
                 result = timeFormat.parseObject(value);
             } else if (adoNetType.endsWith("Decimal")) {
-                result = decimalFormat.parseObject(value);
+                result = BigDecimal.valueOf((Long) decimalFormat.parseObject(value));
             } else if (adoNetType.endsWith("Single")) {
                 result = Float.valueOf(singleFormat.parseObject(value).toString());
             } else if (adoNetType.endsWith("Double")) {

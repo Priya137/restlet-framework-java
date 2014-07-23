@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =========================================================================================
+	 Restlet lgc script :
+	 Combine all the jars needed by dsds into one single executable jar on below location  - 
+	 "\build\editions\jse\dist\classic\restlet-jse-2.2snapshot\lib\bundle\restlet_lgc-2.2.1.jar"
+	 Author : Onkar Dhuri 
+	 Usage : ant -f restletBundle.xml
+     ========================================================================================= -->
+<project name="restlet-lgc" default="bundle.jar">
+	<property name="library-location" value="editions\jse\dist\classic\restlet-jse-2.2snapshot\lib" />
+	<target name="bundle.jar">
+		<mkdir dir="${library-location}/bundle" />
+		<delete file="${library-location}/bundle/restlet_lgc-2.2.1.jar" />
+		<jar destfile="${library-location}/bundle/restlet_lgc-2.2.1.jar">
+			<zipgroupfileset dir="${library-location}" includes="org.restlet.ext.atom.jar, org.restlet.ext.crypto.jar, org.restlet.ext.freemarker.jar, 
+				org.restlet.ext.odata.jar, org.restlet.ext.xml.jar, org.restlet.jar, org.core4j*/*.jar, org.freemarker*/*.jar, com.google.gson*/*.jar,
+				javax.ws.rs*/*.jar, org.jvnet.mimepull*/*.jar, org.apache.commons.cli*/*.jar" />
+			<manifest>
+				<attribute name="Main-Class" value="org.restlet.ext.odata.Generator" />
+			</manifest>
+		</jar>
+	</target>
+</project>

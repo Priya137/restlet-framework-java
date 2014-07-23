@@ -325,34 +325,44 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	private static <T> void parsePropertiesByType(XMLEventReader reader, T entity, String propertyName, XMLEvent event)
-			throws XMLStreamException, Exception {
-		Object value = null;
-		Attribute typeAttribute = event.asStartElement()
-				.getAttributeByName(M_TYPE);
-		Attribute nullAttribute = event.asStartElement()
-				.getAttributeByName(M_NULL);
-		boolean isNull = nullAttribute != null
-				&& "true".equals(nullAttribute.getValue());
-		if(typeAttribute == null){ // Simple String
-			value = reader.getElementText();
-		}else if(typeAttribute.getValue().toLowerCase().startsWith("edm") && !isNull){ // EDM Type
-			value = TypeUtils.fromEdm(reader.getElementText(), typeAttribute.getValue());
-		}else if(typeAttribute.getValue().toLowerCase().startsWith("collection")){// collection type
-			Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-			// Delegate the collection handling to respective handler.
-			CollectionPropertyHandler.parse(reader, o, event.asStartElement(), entity);
-		} else if(!isNull){// complex type
-			// get or create the property instance
-			Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-			// populate the object
-			parseProperties(reader, event.asStartElement(), (T) o);
-			// set it back to parent entity
-			ReflectUtils.invokeSetter(entity, propertyName, o);
-		}
-		
-		if(value!= null){
-			ReflectUtils.invokeSetter(entity, propertyName, value);
+	private static <T> void parsePropertiesByType(XMLEventReader reader, T entity, String propertyName, XMLEvent event) {
+		try {
+			Object value = null;
+			Attribute typeAttribute = event.asStartElement()
+					.getAttributeByName(M_TYPE);
+			Attribute nullAttribute = event.asStartElement()
+					.getAttributeByName(M_NULL);
+			boolean isNull = nullAttribute != null
+					&& "true".equals(nullAttribute.getValue());
+			if (typeAttribute == null) { // Simple String
+				value = reader.getElementText();
+			} else if (typeAttribute.getValue().toLowerCase().startsWith("edm")
+					&& !isNull) { // EDM Type
+				value = TypeUtils.fromEdm(reader.getElementText(),
+						typeAttribute.getValue());
+			} else if (typeAttribute.getValue().toLowerCase()
+					.startsWith("collection")) {// collection type
+				Object o = ReflectUtils.getPropertyObject(entity, propertyName);
+				// Delegate the collection handling to respective handler.
+				CollectionPropertyHandler.parse(reader, o,
+						event.asStartElement(), entity);
+			} else if (!isNull) {// complex type
+				// get or create the property instance
+				Object o = ReflectUtils.getPropertyObject(entity, propertyName);
+				// populate the object
+				parseProperties(reader, event.asStartElement(), (T) o);
+				// set it back to parent entity
+				ReflectUtils.invokeSetter(entity, propertyName, o);
+			}
+			if (value != null) {
+				ReflectUtils.invokeSetter(entity, propertyName, value);
+			}
+		} catch (XMLStreamException e) {
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the property due to: " + e.getMessage());
+		} catch (Exception e) {
+			Context.getCurrentLogger().warning(
+                    "Cannot parse the property due to: " + e.getMessage());
 		}
 	}
 
