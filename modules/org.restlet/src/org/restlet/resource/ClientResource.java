@@ -395,7 +395,7 @@ public class ClientResource extends Resource {
      *            The handled request.
      */
     public ClientResource(Request request) {
-        this(request, null);
+        this(request, new Response(request));
     }
 
     /**
