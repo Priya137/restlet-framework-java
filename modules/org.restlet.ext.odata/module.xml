@@ -16,7 +16,7 @@
 		<dependency type="library" id="gson" />
 		<dependency type="library" id="mimepull" />
 		<dependency type="library" id="jaxrs" />
-		<dependency type="library" id="commons-cli" />
+		<dependency type="library" id="cli" />
 		
 	</dependencies>
 	<source edition="android">
