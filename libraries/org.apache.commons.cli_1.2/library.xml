@@ -1,4 +1,4 @@
-<library id="commons-cli" symbolicName="org.apache.commons.cli">
+<library id="cli" symbolicName="org.apache.commons.cli">
 	<name>Apache Commons CLI</name>
 	<description>Apache Commons CLI</description>
 	<version>1.2</version>

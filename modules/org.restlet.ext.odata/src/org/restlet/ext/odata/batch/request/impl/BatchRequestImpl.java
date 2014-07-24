@@ -24,7 +24,6 @@ import org.restlet.ext.odata.batch.util.RestletBatchRequestHelper;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
-import org.restlet.util.WrapperRepresentation;
 
 /**
  * The Class BatchRequestImpl forms the base class for batch request. <br>
