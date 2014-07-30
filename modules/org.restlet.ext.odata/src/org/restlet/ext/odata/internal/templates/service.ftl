@@ -123,7 +123,7 @@ public class ${className} extends org.restlet.ext.odata.Service {
      * 
      * @param entity
      *            The entity to add to the service.
-     * @return generic object of Type T.
+     * @return entity Type Object
      * 			The newly created entity.
      *	
      * @throws Exception 
