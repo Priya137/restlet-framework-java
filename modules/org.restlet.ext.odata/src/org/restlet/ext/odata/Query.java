@@ -51,6 +51,7 @@ import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.FeedContentHandler;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
+//import org.restlet.ext.odata.json.JsonFeedHandler;
 import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
@@ -356,65 +357,101 @@ public class Query<T> implements Iterable<T> {
             }
 
             Representation result = null;
-            try {
-                result = resource.get(MediaType.APPLICATION_ATOM);
-            } catch (ResourceException e) {
-                getLogger().warning(
-                        "Can't execute the query for the following reference: "
-                                + targetUri + " due to " + e.getMessage());
-                throw e;
-            }
+			if (!(this.getQuery() != null && this.getQuery().contains(
+					"$format=json"))) {		// This is ATOM/XML feed
+				try {
+					result = resource.get(MediaType.APPLICATION_ATOM);
+				} catch (ResourceException e) {
+					getLogger().warning(
+							"Can't execute the query for the following reference: "
+									+ targetUri + " due to " + e.getMessage());
+					throw e;
+				}
 
-            if (resource.getStatus().isSuccess()) {
-                // Guess the type of query based on the URI structure
-                switch (guessType(targetUri)) {
-                case TYPE_ENTITY_SET:
-                case TYPE_ENTITY:
-                    Feed feed = new Feed();
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType.getName(), entityType, entityClass, metadata);
-                    ///AtomFeedCursorHandler<T> feedHandler = new AtomFeedCursorHandler<T>(entityType.getName(), entityType, entityClass);
-                    feedHandler.setFeed(feed);
-                    feedHandler.parse(result.getReader());
-                    this.setFeed(feed);
-                    this.count = -1;// no need to set as we send $count request later
-                    this.entities = feedHandler.getEntities();
-                    break;
-                case TYPE_UNKNOWN:
-                    // Guess the type of query based on the returned
-                    // representation
-                    Representation rep = new StringRepresentation(
-                            result.getText());
-                    String string = rep.getText().substring(0,
-                            Math.min(100, rep.getText().length()));
-                    if (string.contains("<feed")) {
-                    	FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
-                                entityClass, entityType, metadata, getLogger());
-                        setFeed(new Feed(rep, feedContentHandler));
-                        this.count = feedContentHandler.getCount();
-                        this.entities = feedContentHandler.getEntities();
-                    } else if (string.contains("<entry")) {
-                    	EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
-                                entityClass, entityType, metadata, getLogger());
-                        feed = new Feed();
-                        feed.getEntries().add(
-                                new Entry(rep, entryContentHandler));
-                        setFeed(feed);
-                        entities = new ArrayList<T>();
-                        if (entryContentHandler.getEntity() != null) {
-                            entities.add(entryContentHandler.getEntity());
-                        }
-                    }
-                default:
-                    // Can only guess entity and entity set, a priori.
-                    // TODO May we go a step further by analyzing the metadata
-                    // of the data services?
-                    // Do we support only those two types?
-                    // Another way is to guess from the result representation.
-                    // Sometimes, it returns a set, an entity, or a an XML
-                    // representation of a property.
-                    break;
-                }
-            }
+				if (resource.getStatus().isSuccess()) {
+					// Guess the type of query based on the URI structure
+					switch (guessType(targetUri)) {
+					case TYPE_ENTITY_SET:
+					case TYPE_ENTITY:
+						Feed feed = new Feed();
+						AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType, entityClass, metadata);
+						feedHandler.setFeed(feed);
+						feedHandler.parse(result.getReader());
+						this.setFeed(feed);
+						this.count = feedHandler.getEntities().size();
+						this.entities = feedHandler.getEntities();
+						break;
+					case TYPE_UNKNOWN:
+						// Guess the type of query based on the returned
+						// representation
+						Representation rep = new StringRepresentation(
+								result.getText());
+						String string = rep.getText().substring(0,
+								Math.min(100, rep.getText().length()));
+						if (string.contains("<feed")) {
+							FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
+									entityClass, entityType, metadata,
+									getLogger());
+							setFeed(new Feed(rep, feedContentHandler));
+							this.count = feedContentHandler.getCount();
+							this.entities = feedContentHandler.getEntities();
+						} else if (string.contains("<entry")) {
+							EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
+									entityClass, entityType, metadata,
+									getLogger());
+							feed = new Feed();
+							feed.getEntries().add(
+									new Entry(rep, entryContentHandler));
+							setFeed(feed);
+							entities = new ArrayList<T>();
+							if (entryContentHandler.getEntity() != null) {
+								entities.add(entryContentHandler.getEntity());
+							}
+						}
+					default:
+						// Can only guess entity and entity set, a priori.
+						// TODO May we go a step further by analyzing the metadata
+						// of the data services?
+						// Do we support only those two types?
+						// Another way is to guess from the result representation.
+						// Sometimes, it returns a set, an entity, or a an XML
+						// representation of a property.
+						break;
+					}
+				}
+
+			} else {	// JSON feed
+				/*try {
+					result = resource.get(MediaType.APPLICATION_JSON);
+				} catch (ResourceException e) {
+					getLogger().warning(
+							"Can't execute the query for the following reference: "
+									+ targetUri + " due to " + e.getMessage());
+					throw e;
+				}
+
+				if (resource.getStatus().isSuccess()) {
+					// Guess the type of query based on the URI structure
+					switch (guessType(targetUri)) {
+					case TYPE_ENTITY_SET:
+					case TYPE_ENTITY:
+						Feed feed = new Feed();
+						JsonFeedHandler<T> feedHandler = new JsonFeedHandler<T>(
+								entityType.getName(), entityType, entityClass,
+								metadata);
+						feedHandler.setFeed(feed);
+						feedHandler.parse(result.getReader());
+						this.setFeed(feed);
+						this.count = -1;// no need to set as we send $count
+										// request later
+						this.entities = feedHandler.getEntities();
+						break;
+						
+					default:
+						break;
+					}
+				}*/
+			}
 
             service.setLatestRequest(resource.getRequest());
             service.setLatestResponse(resource.getResponse());

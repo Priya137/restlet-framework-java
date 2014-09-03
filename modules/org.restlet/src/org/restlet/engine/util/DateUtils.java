@@ -277,6 +277,14 @@ public final class DateUtils {
                 // Ignores error as the next format may work better
             }
         }
+        // parse date in string format. e.g. - "/Date(837475200000)/"
+        if(result==null && date.toLowerCase().startsWith("/date")){
+        	try {
+                result = new Date(Long.valueOf(date.substring(6,date.length()-2)));
+            } catch (Exception e) {
+                // Ignores error as the next format may work better
+            }
+        }
 
         return result;
     }
