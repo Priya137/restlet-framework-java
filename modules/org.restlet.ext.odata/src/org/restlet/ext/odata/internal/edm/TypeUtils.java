@@ -136,20 +136,6 @@ public class TypeUtils {
 
         return result;
     }
-    
-    /**
-     * Convert long/double value to double.
-     * This method is required when DecimalFormat.parseObject method returns either Long or 
-     * Double depending on the non-zero numbers after decimal point. <br />
-     * for e.g. in case of 14.00 -> parseObject returns Long but for 14.03 -> it returns long.
-     *
-     * @param value the value
-     * @return the double
-     */
-    public static Double convertToDouble(Object value){
-    	//if()
-    	return null;
-    }
 
     /**
      * Returns a correct full class name from the given name. Especially, it
