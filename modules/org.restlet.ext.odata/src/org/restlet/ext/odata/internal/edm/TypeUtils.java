@@ -106,7 +106,11 @@ public class TypeUtils {
             } else if (adoNetType.endsWith("Time")) {
                 result = timeFormat.parseObject(value);
             } else if (adoNetType.endsWith("Decimal")) {
-                result = BigDecimal.valueOf((Long) decimalFormat.parseObject(value));
+            	/** DecimalFormat.parseObject returns either Long or Double depending on the non-zero numbers after decimal point.
+            	 *  e.g. in case of 14.00 -> it returns Long but for 14.03 -> it returns double.
+            	 *  So always convert it to Double to using TypeUtils.convert to avoid class cast exception
+            	 **/
+                result = BigDecimal.valueOf((Double) TypeUtils.convert(Double.class, decimalFormat.parseObject(value).toString()));
             } else if (adoNetType.endsWith("Single")) {
                 result = Float.valueOf(singleFormat.parseObject(value).toString());
             } else if (adoNetType.endsWith("Double")) {

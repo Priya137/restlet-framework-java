@@ -251,7 +251,7 @@ public class Service {
 					//post the inputstream with slug header.
 					rep = resource.post(inputStream, slug, contentType);
 					
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type.getName(), type, entity.getClass(), metadata);
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
 					this.merge(entity, feedHandler.getFeed().getEntries().get(0).getId()); //merge the remaining properties using merge request.
 					return newEntity;
@@ -268,7 +268,7 @@ public class Service {
 					rep = resource.post(r);
 					// parse the response to populate the newly created entity object
 					
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type.getName(), type, entity.getClass(), metadata);
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
                     return newEntity;
 				}
