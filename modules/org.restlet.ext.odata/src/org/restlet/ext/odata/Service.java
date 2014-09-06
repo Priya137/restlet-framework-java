@@ -36,9 +36,6 @@ package org.restlet.ext.odata;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -66,10 +63,8 @@ import org.restlet.engine.header.HeaderReader;
 import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
-import org.restlet.ext.atom.Feed;
 import org.restlet.ext.odata.batch.util.RestletBatchRequestHelper;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
-import org.restlet.ext.odata.internal.edm.ComplexProperty;
 import org.restlet.ext.odata.internal.edm.EntityContainer;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.FunctionImport;
@@ -78,20 +73,15 @@ import org.restlet.ext.odata.internal.edm.Property;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.odata.streaming.StreamReference;
-import org.restlet.ext.odata.validation.annotation.SystemGenerated;
 import org.restlet.ext.odata.xml.AtomFeedHandler;
+import org.restlet.ext.odata.xml.XmlFormatWriter;
 import org.restlet.ext.xml.DomRepresentation;
-import org.restlet.ext.xml.SaxRepresentation;
-import org.restlet.ext.xml.XmlWriter;
-import org.restlet.ext.xml.format.XmlFormatParser;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
 import org.restlet.resource.ResourceException;
 import org.restlet.util.Series;
 import org.w3c.dom.Node;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.AttributesImpl;
 
 /**
  * Acts as a manager for a specific remote OData service. OData services are
@@ -263,9 +253,16 @@ public class Service {
 						throw new Exception("Can't add entity to this entity set " + resource.getReference()
 								+ " due to the lack of the service's metadata.");
 					}
-					Entry entry = toEntry(entity);
+					
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					entry.write(baos);
+					if(MediaType.APPLICATION_ATOM.equals(this.getMediaType())){
+						Entry entry = toEntry(entity);
+						entry.write(baos);
+					}else{
+						//TODO: VERBOSE implementation will be checked in later
+						/*final JsonFormatWriter r = new JsonFormatWriter(entity, (Metadata) getMetadata(), entity, isPostRequest);
+						r.write(baos);*/
+					}
 					baos.flush();
 					StringRepresentation r = new StringRepresentation(baos.toString(), this.getMediaType());
 					rep = resource.post(r);
@@ -1246,231 +1243,24 @@ public class Service {
      *            The entity to wrap.
      * @return The Atom entry object that corresponds to the given entity.
      */
-    public Entry toEntry(final Object entity) {
-        Entry result = null;
-
-        if (entity != null) {
-            Metadata metadata = (Metadata) getMetadata();
-            EntityType type = metadata.getEntityType(entity.getClass());
-            if (type != null) {
-                final SaxRepresentation r = new SaxRepresentation(
-                        MediaType.APPLICATION_XML) {
-
-                    @Override
-                    public void write(XmlWriter writer) throws IOException {
-                        try {
-                            // Attribute for nullable values.
-                            AttributesImpl nullAttrs = new AttributesImpl();
-                            nullAttrs.addAttribute(
-                                    WCF_DATASERVICES_METADATA_NAMESPACE,
-                                    "null", null, "boolean", "true");
-                            writer.forceNSDecl(
-                                    WCF_DATASERVICES_METADATA_NAMESPACE, "m");
-                            writer.forceNSDecl(WCF_DATASERVICES_NAMESPACE, "d");
-                            writer.startElement(
-                                    WCF_DATASERVICES_METADATA_NAMESPACE,
-                                    "properties");
-                            write(writer, entity, nullAttrs);
-                            writer.endElement(
-                                    WCF_DATASERVICES_METADATA_NAMESPACE,
-                                    "properties");
-                        } catch (SAXException e) {
-                            throw new IOException(e.getMessage());
-                        }
-                    }
-
-                    private void write(XmlWriter writer, Object entity,
-                            AttributesImpl nullAttrs) throws SAXException {
-                        for (Field field : entity.getClass()
-                                .getDeclaredFields()) {
-                        	SystemGenerated systemGeneratedAnnotation = field
-                        			.getAnnotation(SystemGenerated.class);
-                            String getter = "get"
-                                    + field.getName().substring(0, 1)
-                                            .toUpperCase()
-                                    + field.getName().substring(1);
-                            Property prop = ((Metadata) getMetadata())
-                                    .getProperty(entity, field.getName());
-
-							if (prop != null && systemGeneratedAnnotation == null && isPostRequest) {
-                                writeProperty(writer, entity, prop, getter,
-                                        nullAttrs);
-                            }
-							else if (prop != null && !isPostRequest) {
-                                writeProperty(writer, entity, prop, getter,
-                                        nullAttrs);
-                            }
-                        }
-                    }
-                    
-                    /**
-                     * Write collection property element.
-                     *
-                     * @param writer the writer
-                     * @param entity the entity
-                     * @param value the value
-                     * @param prop the prop
-                     * @param nullAttrs the null attrs
-                     * @throws SAXException the SAX exception
-                     */
-                    private void writeCollectionProperty(XmlWriter writer, Object entity, Object value, Property prop, AttributesImpl nullAttrs) throws SAXException {
-						if (value instanceof List) {
-							try {
-								Field field = entity.getClass().getDeclaredField(
-										prop.getName());
-								if (field.getGenericType() instanceof ParameterizedType) {
-									// determine what type of collection it is
-									ParameterizedType listType = (ParameterizedType) field
-											.getGenericType();
-									Class<?> listClass = (Class<?>) listType
-											.getActualTypeArguments()[0]; // get the parameterized class 
-									String mType = null;
-									boolean isPrimitiveCollection = false;
-									AttributesImpl typeAttr = new AttributesImpl();
-									//TODO:Onkar fetch this to another method
-									if(listClass.getName().toLowerCase().startsWith("java")){ // collection of primitives
-										mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
-										isPrimitiveCollection = true;
-									}else{	// collection of complex
-										String[] className = listClass.getName().split("\\.");
-										mType = "Collection("+ className[0].toUpperCase() + "." + className[1] + ")";
-									}
-									List<?> obj = (List<?>) value;
-									// write collection property tag 
-									typeAttr.addAttribute(
-										WCF_DATASERVICES_METADATA_NAMESPACE,
-										"type", "type", "string", mType);
-									if(obj.size() == 0){
-										typeAttr.addAttribute(
-			                                    WCF_DATASERVICES_METADATA_NAMESPACE,
-			                                    "null", null, "boolean", "true");
-									}
-									writer.startElement(
-										WCF_DATASERVICES_NAMESPACE,
-										prop.getName(), prop.getName(),
-										typeAttr);
-									// write element tags
-									for (Object object : obj) {
-										if(isPrimitiveCollection){
-											if(object.toString().length()>0){
-												writer.dataElement(WCF_DATASERVICES_NAMESPACE, XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), object.toString());
-											}else{
-												writer.emptyElement(
-														WCF_DATASERVICES_NAMESPACE,
-														XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(), XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart(),
-														nullAttrs);
-											}
-										}else{ // complex collection
-											writer.startElement(
-													WCF_DATASERVICES_NAMESPACE,
-													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
-											// write complex property under <element></element>
-											write(writer, object, nullAttrs);
-											writer.endElement(
-													WCF_DATASERVICES_NAMESPACE,
-													XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
-										}
-									}
-								}
-							} catch (SecurityException e) {
-								getLogger().warning(
-				                        "Can't write the collection property: " + e.getMessage());
-							} catch (NoSuchFieldException e) {
-								getLogger().warning(
-				                        "Can't write the collection property: " + e.getMessage());
-							}
-						}
-                    }
-
-                    private void writeProperty(XmlWriter writer, Object entity,
-                            Property prop, String getter,
-                            AttributesImpl nullAttrs) throws SAXException {
-                        for (Method method : entity.getClass()
-                                .getDeclaredMethods()) {
-                            if (method.getReturnType() != null
-                                    && getter.equals(method.getName())
-                                    && method.getParameterTypes().length == 0) {
-                                Object value = null;
-
-								try {
-									value = method.invoke(entity,
-											(Object[]) null);
-								} catch (Exception e) {
-									getLogger().warning(
-					                        "Error occurred while invoking the method : " + e.getMessage());
-								}
-
-								if (value != null) {
-									AttributesImpl typeAttr = new AttributesImpl();
-									if (prop instanceof ComplexProperty) { // if this is collection or complex type
-										if (value instanceof List) { // collection
-											writeCollectionProperty(writer,
-													entity, value, prop, nullAttrs);
-										} else { // complex type
-											EntityType type = ((Metadata) getMetadata()).getEntityType(entity.getClass());
-											// prefix the namespace for m:type 
-											String packageName = type.getSchema().getNamespace().getName() + "." ;
-											typeAttr.addAttribute(
-													WCF_DATASERVICES_METADATA_NAMESPACE,
-													"type", "type", "string",packageName + 
-													((ComplexProperty) prop)
-															.getComplexType()
-															.getName());
-											writer.startElement(
-													WCF_DATASERVICES_NAMESPACE,
-													prop.getName(), prop.getName(),
-													typeAttr);
-											// write data
-											write(writer, value, nullAttrs);
-										}
-									} else {
-										typeAttr.addAttribute(
-												WCF_DATASERVICES_METADATA_NAMESPACE,
-												"type", "type", "string", prop
-														.getType().getName());
-										writer.startElement(
-												WCF_DATASERVICES_NAMESPACE,
-												prop.getName(), prop.getName(),
-												typeAttr);
-										writer.characters(TypeUtils.toEdm(
-												value, prop.getType()));
-									}
-
-									writer.endElement(
-											WCF_DATASERVICES_NAMESPACE,
-											prop.getName());
-								} else {
-									if (prop.isNullable()) {
-										writer.emptyElement(
-												WCF_DATASERVICES_NAMESPACE,
-												prop.getName(), prop.getName(),
-												nullAttrs);
-									} else {
-										getLogger().warning(
-												"The following property has a null value but is not marked as nullable: "
-														+ prop.getName());
-										writer.emptyElement(
-												WCF_DATASERVICES_NAMESPACE,
-												prop.getName());
-									}
-								}
-								break;
-							}
-                        }
-                    }
-                };
-                r.setNamespaceAware(true);
+	public Entry toEntry(final Object entity) {
+		Entry result = null;
+		if (entity != null) {
+			Metadata metadata = (Metadata) getMetadata();
+			EntityType type = metadata.getEntityType(entity.getClass());
+			if (type != null) {
+				final XmlFormatWriter r = new XmlFormatWriter((Metadata)
+				getMetadata(), entity, isPostRequest);
+				r.setNamespaceAware(true);
 				result = new Entry();
 				Content content = new Content();
 				content.setInlineContent(r);
 				content.setToEncode(false);
-
 				result.setContent(content);
-            }
-        }
-
-        return result;
-    }
+			}
+		}
+		return result;
+	}
 
     /**
      * Updates an entity.
