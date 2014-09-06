@@ -66,6 +66,7 @@ import org.restlet.engine.header.HeaderReader;
 import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
+import org.restlet.ext.atom.Feed;
 import org.restlet.ext.odata.batch.util.RestletBatchRequestHelper;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
 import org.restlet.ext.odata.internal.edm.ComplexProperty;
@@ -138,6 +139,8 @@ public class Service {
     private Logger logger;
     
     private String slug = "";
+    
+    private MediaType mediaType = MediaType.APPLICATION_ATOM;
    
     /** 
      * add Query parameter in request header for each call.
@@ -251,7 +254,7 @@ public class Service {
 					//post the inputstream with slug header.
 					rep = resource.post(inputStream, slug, contentType);
 					
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata);
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata, null);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
 					this.merge(entity, feedHandler.getFeed().getEntries().get(0).getId()); //merge the remaining properties using merge request.
 					return newEntity;
@@ -264,11 +267,11 @@ public class Service {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					entry.write(baos);
 					baos.flush();
-					StringRepresentation r = new StringRepresentation(baos.toString(), MediaType.APPLICATION_ATOM);
+					StringRepresentation r = new StringRepresentation(baos.toString(), this.getMediaType());
 					rep = resource.post(r);
 					// parse the response to populate the newly created entity object
 					
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata);
+                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata, null);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
                     return newEntity;
 				}
@@ -1324,6 +1327,7 @@ public class Service {
 									String mType = null;
 									boolean isPrimitiveCollection = false;
 									AttributesImpl typeAttr = new AttributesImpl();
+									//TODO:Onkar fetch this to another method
 									if(listClass.getName().toLowerCase().startsWith("java")){ // collection of primitives
 										mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
 										isPrimitiveCollection = true;
@@ -1495,8 +1499,7 @@ public class Service {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             entry.write(baos);
             baos.flush();
-            StringRepresentation r = new StringRepresentation(baos.toString(),
-                    MediaType.APPLICATION_ATOM);
+            StringRepresentation r = new StringRepresentation(baos.toString(), this.getMediaType());
             String tag = getTag(entity);
 
             if (tag != null) {
@@ -1604,6 +1607,23 @@ public class Service {
 	 */
 	public void setParameters(Map<String, String> parameters) {
 		this.parameters = parameters;
+	}
+
+	/**
+	 * @return the mediaType
+	 */
+	public MediaType getMediaType() {
+		if(mediaType == null){
+			mediaType = MediaType.APPLICATION_ATOM;
+		}
+		return mediaType;
+	}
+
+	/**
+	 * @param mediaType the mediaType to set
+	 */
+	public void setMediaType(MediaType mediaType) {
+		this.mediaType = mediaType;
 	}
 
 }

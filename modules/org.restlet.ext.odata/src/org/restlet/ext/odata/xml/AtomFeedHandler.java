@@ -45,7 +45,7 @@ import org.restlet.representation.StringRepresentation;
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  */
 public class AtomFeedHandler<T> extends XmlFormatParser implements
-		FormatParser<Feed> {
+		FormatParser<T> {
 
 	/** The metadata. */
 	protected Metadata metadata;
@@ -125,18 +125,19 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 * @param entityClass the entity class
 	 * @param metadata the metadata
 	 */
-	public AtomFeedHandler(EntityType entityType, Class<?> entityClass, Metadata metadata) {
+	public AtomFeedHandler(EntityType entityType, Class<?> entityClass, Metadata metadata, Feed feed) {
 		this.entityType = entityType;
 		this.entityClass = entityClass;
 		this.entities = new ArrayList<T>();
 		this.metadata = metadata;
+		this.feed = feed;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.restlet.ext.xml.format.FormatParser#parse(java.io.Reader)
 	 */
-	public Feed parse(Reader reader) {
-		return parseFeed(reader);
+	public void parse(Reader reader) {
+		this.parseFeed(reader);
 	}
 
 	/**
@@ -326,7 +327,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					.startsWith("collection")) {// collection type
 				Object o = ReflectUtils.getPropertyObject(entity, propertyName);
 				// Delegate the collection handling to respective handler.
-				CollectionPropertyHandler.parse(reader, o,
+				AtomCollectionPropertyHandler.parse(reader, o,
 						event.asStartElement(), entity);
 			} else if (!isNull) {// complex type
 				// get or create the property instance

@@ -149,6 +149,18 @@ public final class MediaType extends Metadata {
 
     public static final MediaType APPLICATION_JSON = register(
             "application/json", "JavaScript Object Notation document");
+    
+    public static final MediaType APPLICATION_JSONVERBOSE = register(
+    		"application/json;odata=verbose", "Json verbose type for odata");
+    
+    public static final MediaType APPLICATION_JSONLITE_MINIMALMETADATA = register(
+    		"application/json;odata=minimalmetadata", "Json verbose type for odata");
+    
+    public static final MediaType APPLICATION_JSONLITE_FULLMETADATA = register(
+    		"application/json;odata=fullmetadata", "Json verbose type for odata");
+    
+    public static final MediaType APPLICATION_JSONLITE_NOMETADATA = register(
+    		"application/json;odata=nometadata", "Json verbose type for odata");
 
     // [ifndef gwt] member
     public static final MediaType APPLICATION_JSON_ACTIVITY = register(
