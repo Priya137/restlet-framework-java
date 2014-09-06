@@ -21,7 +21,7 @@ import org.restlet.ext.odata.internal.edm.TypeUtils;
  * 
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  */
-public class CollectionPropertyHandler {
+public class AtomCollectionPropertyHandler {
 
 	/**
 	 * Parses the collection of either simple type or complex type

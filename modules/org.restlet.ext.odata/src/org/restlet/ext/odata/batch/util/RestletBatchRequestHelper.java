@@ -228,7 +228,7 @@ public class RestletBatchRequestHelper {
 					BatchProperty bp = (BatchProperty) so;
 					AtomFeedHandler<Object> aFHandler = new AtomFeedHandler<Object>(bp.getEntityType(),
 							bp.getEntityClass(),
-							(Metadata) service.getMetadata());
+							(Metadata) service.getMetadata(), null);
 					result = RestletBatchRequestHelper.getEntity(
 							new StringRepresentation(sb.toString()), aFHandler);
 				}

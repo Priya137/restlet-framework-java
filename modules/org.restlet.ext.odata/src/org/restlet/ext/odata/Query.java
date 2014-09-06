@@ -38,6 +38,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -47,12 +49,13 @@ import org.restlet.ext.atom.Entry;
 import org.restlet.ext.atom.Feed;
 import org.restlet.ext.atom.Link;
 import org.restlet.ext.atom.Relation;
+import org.restlet.ext.odata.factory.FeedHandlerFactory;
 import org.restlet.ext.odata.internal.EntryContentHandler;
 import org.restlet.ext.odata.internal.FeedContentHandler;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
-//import org.restlet.ext.odata.json.JsonFeedHandler;
-import org.restlet.ext.odata.xml.AtomFeedHandler;
+import org.restlet.ext.xml.format.FormatParser;
+import org.restlet.ext.xml.format.FormatType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -307,6 +310,20 @@ public class Query<T> implements Iterable<T> {
 
         return result;
     }
+    
+	//TODO:Onkar javadoc
+    public String getParameter(String key){
+    	String value = null;
+    	String regex = "[\\?&](\\w+)=(\\w+)";
+    	Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(key);
+		while(m.find()){
+			if(m.group(1).equals(key)){
+				value = m.group(2);
+			}
+		}
+    	return value;
+    }
 
     /**
      * Returns the complete target URI reference for this query. It is composed
@@ -355,102 +372,70 @@ public class Query<T> implements Iterable<T> {
                 throw new Exception(
                         "Can't execute the query without the service's metadata.");
             }
-
+            
+            FormatType formatType = FormatType.parse(service.getMediaType().getName());
             Representation result = null;
-			if (!(this.getQuery() != null && this.getQuery().contains(
-					"$format=json"))) {		// This is ATOM/XML feed
-				try {
-					result = resource.get(MediaType.APPLICATION_ATOM);
-				} catch (ResourceException e) {
-					getLogger().warning(
-							"Can't execute the query for the following reference: "
-									+ targetUri + " due to " + e.getMessage());
-					throw e;
-				}
+            
+        	formatType = validateFormatTypes(formatType);
 
-				if (resource.getStatus().isSuccess()) {
-					// Guess the type of query based on the URI structure
-					switch (guessType(targetUri)) {
-					case TYPE_ENTITY_SET:
-					case TYPE_ENTITY:
-						Feed feed = new Feed();
-						AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(entityType, entityClass, metadata);
-						feedHandler.setFeed(feed);
-						feedHandler.parse(result.getReader());
-						this.setFeed(feed);
-						this.count = feedHandler.getEntities().size();
-						this.entities = feedHandler.getEntities();
-						break;
-					case TYPE_UNKNOWN:
-						// Guess the type of query based on the returned
-						// representation
-						Representation rep = new StringRepresentation(
-								result.getText());
-						String string = rep.getText().substring(0,
-								Math.min(100, rep.getText().length()));
-						if (string.contains("<feed")) {
-							FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
-									entityClass, entityType, metadata,
-									getLogger());
-							setFeed(new Feed(rep, feedContentHandler));
-							this.count = feedContentHandler.getCount();
-							this.entities = feedContentHandler.getEntities();
-						} else if (string.contains("<entry")) {
-							EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
-									entityClass, entityType, metadata,
-									getLogger());
-							feed = new Feed();
-							feed.getEntries().add(
-									new Entry(rep, entryContentHandler));
-							setFeed(feed);
-							entities = new ArrayList<T>();
-							if (entryContentHandler.getEntity() != null) {
-								entities.add(entryContentHandler.getEntity());
-							}
+            try {
+				result = resource.get(service.getMediaType());
+			} catch (ResourceException e) {
+				getLogger().warning(
+						"Can't execute the query for the following reference: "
+								+ targetUri + " due to " + e.getMessage());
+				throw e;
+			}
+
+			if (resource.getStatus().isSuccess()) {
+				// Guess the type of query based on the URI structure
+				switch (guessType(targetUri)) {
+				case TYPE_ENTITY_SET:
+				case TYPE_ENTITY:
+					Feed feed = new Feed();
+					FormatParser<T> feedHandler = FeedHandlerFactory.getParser(formatType, entityType, entityClass, metadata, feed);
+					feedHandler.parse(result.getReader());
+					this.setFeed(feed);
+					this.count = feedHandler.getEntities().size();
+					this.entities = feedHandler.getEntities();
+					break;
+				case TYPE_UNKNOWN:
+					// Guess the type of query based on the returned
+					// representation
+					Representation rep = new StringRepresentation(
+							result.getText());
+					String string = rep.getText().substring(0,
+							Math.min(100, rep.getText().length()));
+					if (string.contains("<feed")) {
+						FeedContentHandler<T> feedContentHandler = new FeedContentHandler<T>(
+								entityClass, entityType, metadata,
+								getLogger());
+						setFeed(new Feed(rep, feedContentHandler));
+						this.count = feedContentHandler.getCount();
+						this.entities = feedContentHandler.getEntities();
+					} else if (string.contains("<entry")) {
+						EntryContentHandler<T> entryContentHandler = new EntryContentHandler<T>(
+								entityClass, entityType, metadata,
+								getLogger());
+						feed = new Feed();
+						feed.getEntries().add(
+								new Entry(rep, entryContentHandler));
+						setFeed(feed);
+						entities = new ArrayList<T>();
+						if (entryContentHandler.getEntity() != null) {
+							entities.add(entryContentHandler.getEntity());
 						}
-					default:
-						// Can only guess entity and entity set, a priori.
-						// TODO May we go a step further by analyzing the metadata
-						// of the data services?
-						// Do we support only those two types?
-						// Another way is to guess from the result representation.
-						// Sometimes, it returns a set, an entity, or a an XML
-						// representation of a property.
-						break;
 					}
+				default:
+					// Can only guess entity and entity set, a priori.
+					// TODO May we go a step further by analyzing the metadata
+					// of the data services?
+					// Do we support only those two types?
+					// Another way is to guess from the result representation.
+					// Sometimes, it returns a set, an entity, or a an XML
+					// representation of a property.
+					break;
 				}
-
-			} else {	// JSON feed
-				/*try {
-					result = resource.get(MediaType.APPLICATION_JSON);
-				} catch (ResourceException e) {
-					getLogger().warning(
-							"Can't execute the query for the following reference: "
-									+ targetUri + " due to " + e.getMessage());
-					throw e;
-				}
-
-				if (resource.getStatus().isSuccess()) {
-					// Guess the type of query based on the URI structure
-					switch (guessType(targetUri)) {
-					case TYPE_ENTITY_SET:
-					case TYPE_ENTITY:
-						Feed feed = new Feed();
-						JsonFeedHandler<T> feedHandler = new JsonFeedHandler<T>(
-								entityType.getName(), entityType, entityClass,
-								metadata);
-						feedHandler.setFeed(feed);
-						feedHandler.parse(result.getReader());
-						this.setFeed(feed);
-						this.count = -1;// no need to set as we send $count
-										// request later
-						this.entities = feedHandler.getEntities();
-						break;
-						
-					default:
-						break;
-					}
-				}*/
 			}
 
             service.setLatestRequest(resource.getRequest());
@@ -459,6 +444,26 @@ public class Query<T> implements Iterable<T> {
             setExecuted(true);
         }
     }
+
+	//TODO:Onkar javadoc
+	private FormatType validateFormatTypes(FormatType formatType) {
+		String format = this.getParameter("$format");
+		if (formatType != FormatType.ATOM ){ // this is not atom, so add $format query parameter.
+			if(format==null){ // $format is already not present
+				this.addParameter("$format", formatType.name().toLowerCase());
+			}else{
+				if(getQuery()!=null){
+					getQuery().replaceAll(format, formatType.toString().toLowerCase()); // override the $format type as per specified in service.
+				}
+			}
+		}else{ // media type is set as atom; so check if we have $format set in query
+			if(format!=null){ // $format option is set, so change the media type in service as well 
+				formatType = FormatType.parse(format);
+				service.setMediaType(MediaType.valueOf(formatType.name().toLowerCase()));
+			}
+		}
+		return formatType;
+	}
 
 	
 	/**

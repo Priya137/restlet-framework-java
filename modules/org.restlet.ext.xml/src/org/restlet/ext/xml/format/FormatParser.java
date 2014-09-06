@@ -1,13 +1,13 @@
 package org.restlet.ext.xml.format;
 
 import java.io.Reader;
+import java.util.List;
 
 /**
- * Deals with parsing the resulting stream into a <code>Entry</code> or
- * <code>Feed</code> and converting it to a <code>OEntity</code>. The
- * implementation depends on the format Atom or Json.
+ * Deals with parsing the resulting stream into respective entity object.
+ * The implementation depends on the format Atom or Json.
  *
- * @param <T>            Atom or json
+ * @param <T> Feed
  * 
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  *
@@ -23,6 +23,13 @@ public interface FormatParser<T> {
    * @param reader the reader
    * @return the t
    */
-  T parse(Reader reader);
+  void parse(Reader reader);
+  
+  /**
+   * Returns the list of entities parsed/populated by the parse() method
+   *
+   * @return the entities
+   */
+  List<T> getEntities();
 
 }
