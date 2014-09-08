@@ -3,7 +3,7 @@ package org.restlet.ext.xml.format;
 import org.restlet.data.MediaType;
 
 /**
- * The Enum FormatType. 
+ * The Enum FormatType which corresponds to different MediaType like atom/json/jsonverbose. 
  * * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  */
 public enum FormatType {
@@ -14,17 +14,34 @@ public enum FormatType {
 	JSONLITEFULLMETADATA(MediaType.APPLICATION_JSONLITE_FULLMETADATA.getName()),
 	JSONLITENOMETADATA(MediaType.APPLICATION_JSONLITE_NOMETADATA.getName());
 
+	/**
+	 * Private constructor to avoid instantiation outside this class.
+	 *
+	 * @param mediaTypes the media types
+	 */
 	private FormatType(String... mediaTypes) {
 		this.mediaTypes = mediaTypes;
 	}
 
+	/** The media types. */
 	private final String[] mediaTypes;
 
+	/**
+	 * Gets the acceptable media types.
+	 *
+	 * @return the acceptable media types
+	 */
 	public String[] getAcceptableMediaTypes() {
 		return mediaTypes;
 	}
 
 	//TODO:Onkar do we need to compare for hardcoded value strings belows. also modify javadocs
+	/**
+	 * Return the format type corresponding to argument.
+	 *
+	 * @param format the format
+	 * @return the format type
+	 */
 	public static FormatType parse(String format) {
 		if ("verbosejson".equalsIgnoreCase(format)
 				|| "jsonverbose".equalsIgnoreCase(format)

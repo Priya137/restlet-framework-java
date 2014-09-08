@@ -21,7 +21,6 @@ import org.restlet.data.Method;
 import org.restlet.data.Reference;
 import org.restlet.engine.header.HeaderConstants;
 import org.restlet.ext.atom.Entry;
-import org.restlet.ext.atom.Feed;
 import org.restlet.ext.odata.Service;
 import org.restlet.ext.odata.batch.request.BatchProperty;
 import org.restlet.ext.odata.batch.request.ChangeSetRequest;
@@ -32,8 +31,9 @@ import org.restlet.ext.odata.batch.response.BatchResponse;
 import org.restlet.ext.odata.batch.response.ChangeSetResponse;
 import org.restlet.ext.odata.batch.response.impl.BatchResponseImpl;
 import org.restlet.ext.odata.batch.response.impl.ChangeSetResponseImpl;
+import org.restlet.ext.odata.factory.FeedHandlerFactory;
 import org.restlet.ext.odata.internal.edm.Metadata;
-import org.restlet.ext.odata.xml.AtomFeedHandler;
+import org.restlet.ext.xml.format.FormatParser;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 
@@ -222,13 +222,15 @@ public class RestletBatchRequestHelper {
 			}
 
 			Object result = null;
-			if (inboundHeaders.containsKey(BatchConstants.HTTP_HEADER_CONTENT_TYPE)) {
+			if (inboundHeaders
+					.containsKey(BatchConstants.HTTP_HEADER_CONTENT_TYPE)) {
 				if (so instanceof CreateEntityRequest
 						|| so instanceof GetEntityRequest) {
 					BatchProperty bp = (BatchProperty) so;
-					AtomFeedHandler<Object> aFHandler = new AtomFeedHandler<Object>(bp.getEntityType(),
-							bp.getEntityClass(),
-							(Metadata) service.getMetadata(), null);
+					FormatParser<Object> aFHandler = FeedHandlerFactory
+							.getParser(formatType, bp.getEntityType(),
+									bp.getEntityClass(),
+									(Metadata) service.getMetadata(), null);
 					result = RestletBatchRequestHelper.getEntity(
 							new StringRepresentation(sb.toString()), aFHandler);
 				}
@@ -291,9 +293,7 @@ public class RestletBatchRequestHelper {
 	 *             Signals that an I/O exception has occurred.
 	 */
 	public static <T> T getEntity(Representation rep,
-			AtomFeedHandler<T> feedHandler) throws IOException {
-		Feed feed = new Feed();
-		feedHandler.setFeed(feed);
+			FormatParser<T> feedHandler) throws IOException {
 		feedHandler.parse(rep.getReader());
 		return feedHandler.getEntities().get(0);
 	}

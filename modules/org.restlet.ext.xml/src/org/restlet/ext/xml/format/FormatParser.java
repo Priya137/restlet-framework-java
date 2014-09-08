@@ -11,9 +11,6 @@ import java.util.List;
  * 
  * @author <a href="mailto:onkar.dhuri@synerzip.com">Onkar Dhuri</a>
  *
- * @see Entry
- * @see Feed
- * @see OEntity
  */
 public interface FormatParser<T> {
 
@@ -31,5 +28,13 @@ public interface FormatParser<T> {
    * @return the entities
    */
   List<T> getEntities();
+  
+  /**
+   * Returns the feed associated with the parser.
+   *
+   * @param <Feed> the generic type
+   * @return the feed
+   */
+  <Feed> Feed getFeed();
 
 }

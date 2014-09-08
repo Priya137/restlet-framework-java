@@ -224,7 +224,7 @@ public class FunctionImport extends NamedObject {
      */
     public boolean isReturningCollection() {
         return getReturnType() != null
-                && getReturnType().toLowerCase().startsWith("collection(");
+                && TypeUtils.isCollection(getReturnType());
     }
 
     /**

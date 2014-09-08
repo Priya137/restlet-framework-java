@@ -68,7 +68,7 @@ public class XmlFormatWriter extends SaxRepresentation {
             writer.startElement(
                     WCF_DATASERVICES_METADATA_NAMESPACE,
                     "properties");
-            write(writer, entity, nullAttrs);
+            this.write(writer, entity, nullAttrs);
             writer.endElement(
                     WCF_DATASERVICES_METADATA_NAMESPACE,
                     "properties");
@@ -91,11 +91,11 @@ public class XmlFormatWriter extends SaxRepresentation {
                     .getProperty(entity, field.getName());
 
 			if (prop != null && systemGeneratedAnnotation == null && isPostRequest) {
-                writeProperty(writer, entity, prop, getter,
+                this.writeProperty(writer, entity, prop, getter,
                         nullAttrs);
             }
 			else if (prop != null && !isPostRequest) {
-                writeProperty(writer, entity, prop, getter,
+				this.writeProperty(writer, entity, prop, getter,
                         nullAttrs);
             }
         }
@@ -123,12 +123,12 @@ public class XmlFormatWriter extends SaxRepresentation {
 					Class<?> listClass = (Class<?>) listType
 							.getActualTypeArguments()[0]; // get the parameterized class 
 					String mType = null;
-					boolean isPrimitiveCollection = false;
+					boolean isPrimitiveCollection = TypeUtils.isPrimitiveCollection(listClass);
 					AttributesImpl typeAttr = new AttributesImpl();
-					if(listClass.getName().toLowerCase().startsWith("java")){ // collection of primitives
+					if(isPrimitiveCollection){ // collection of primitives
 						mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
-						isPrimitiveCollection = true;
 					}else{	// collection of complex
+						// TODO:Onkar potential bug here
 						String[] className = listClass.getName().split("\\.");
 						mType = "Collection("+ className[0].toUpperCase() + "." + className[1] + ")";
 					}
@@ -162,7 +162,7 @@ public class XmlFormatWriter extends SaxRepresentation {
 									WCF_DATASERVICES_NAMESPACE,
 									XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
 							// write complex property under <element></element>
-							write(writer, object, nullAttrs);
+							this.write(writer, object, nullAttrs);
 							writer.endElement(
 									WCF_DATASERVICES_NAMESPACE,
 									XmlFormatParser.DATASERVICES_ELEMENT.getLocalPart());
@@ -201,7 +201,7 @@ public class XmlFormatWriter extends SaxRepresentation {
 					AttributesImpl typeAttr = new AttributesImpl();
 					if (prop instanceof ComplexProperty) { // if this is collection or complex type
 						if (value instanceof List) { // collection
-							writeCollectionProperty(writer,
+							this.writeCollectionProperty(writer,
 									entity, value, prop, nullAttrs);
 						} else { // complex type
 							EntityType type = ((Metadata) getMetadata()).getEntityType(entity.getClass());
@@ -218,7 +218,7 @@ public class XmlFormatWriter extends SaxRepresentation {
 									prop.getName(), prop.getName(),
 									typeAttr);
 							// write data
-							write(writer, value, nullAttrs);
+							this.write(writer, value, nullAttrs);
 						}
 					} else {
 						typeAttr.addAttribute(

@@ -614,9 +614,7 @@ public class TypeUtils {
             result = Byte.class;
         } else if (edmTypeName.endsWith("String")) {
             result = String.class;
-        } else if (edmTypeName.startsWith("List")) {
-            result = List.class;
-		} else if (edmTypeName.endsWith("Stream")) {
+        } else if (edmTypeName.endsWith("Stream")) {
 			result = StreamReference.class;
         }
 
@@ -736,6 +734,26 @@ public class TypeUtils {
     		return type.substring(11, type.length() - 1);
     	}
     	return null;
+    }
+    
+    /**
+     * Checks if this is primitive collection for which class name starts with "java"
+     *
+     * @param listClass the list class
+     * @return true, if is primitive collection
+     */
+    public static boolean isPrimitiveCollection(Class<?> listClass){
+    	return listClass.getName().toLowerCase().startsWith("java");
+    }
+    
+    /**
+     * Checks if this edm collection type (either collection of complex or simple)
+     *
+     * @param edmType the edm type
+     * @return true, if is collection
+     */
+    public static boolean isCollection(String edmType){
+    	return edmType.toLowerCase().startsWith("collection");
     }
     
     /**

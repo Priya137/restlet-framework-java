@@ -82,6 +82,8 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 	 *
 	 * @return the feed
 	 */
+	@SuppressWarnings("unchecked")
+	@Override
 	public Feed getFeed(){
 		if(feed == null){
 			feed = new Feed();
@@ -288,7 +290,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					if(ReflectUtils.isReservedWord(propertyName)){
 						propertyName="_"+propertyName;
 					}
-					parsePropertiesByType(reader, entity, propertyName, event);
+					AtomFeedHandler.parsePropertiesByType(reader, entity, propertyName, event);
 				}
 			}
 		} catch (Exception e) {
@@ -323,8 +325,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					&& !isNull) { // EDM Type
 				value = TypeUtils.fromEdm(reader.getElementText(),
 						typeAttribute.getValue());
-			} else if (typeAttribute.getValue().toLowerCase()
-					.startsWith("collection")) {// collection type
+			} else if (TypeUtils.isCollection(typeAttribute.getValue())) {// collection type
 				Object o = ReflectUtils.getPropertyObject(entity, propertyName);
 				// Delegate the collection handling to respective handler.
 				AtomCollectionPropertyHandler.parse(reader, o,
@@ -333,7 +334,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 				// get or create the property instance
 				Object o = ReflectUtils.getPropertyObject(entity, propertyName);
 				// populate the object
-				parseProperties(reader, event.asStartElement(), (T) o);
+				AtomFeedHandler.parseProperties(reader, event.asStartElement(), (T) o);
 				// set it back to parent entity
 				ReflectUtils.invokeSetter(entity, propertyName, o);
 			}
@@ -438,7 +439,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					this.getFeed().getEntries().add(rt);
 					if(p!=null){
 						//set author details in the entity.
-						setDetailsOfPerson(entity, p, null); // third parameter would be null if we don't have contributor object.
+						this.setDetailsOfPerson(entity, p, null); // third parameter would be null if we don't have contributor object.
 					}
 					return entity;
 				}
@@ -455,7 +456,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					Link link = parseAtomLink(reader, event.asStartElement(), entity);
 					rt.getLinks().add(link);
 				} else if (isStartElement(event, M_PROPERTIES)) {
-					parseDSAtomEntry(reader, event, entity);
+					this.parseDSAtomEntry(reader, event, entity);
 				/*} else if (isStartElement(event, M_ACTION)) {
 					AtomFunction function = parseAtomFunction(reader,
 							event.asStartElement());
@@ -581,7 +582,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 										if(mapping.getValuePath().equalsIgnoreCase(innerTag)){
 											
 											propertyName = ReflectUtils.normalize(mapping.getPropertyPath());
-											parsePropertiesByType(reader, entity, propertyName, event2);
+											AtomFeedHandler.parsePropertiesByType(reader, entity, propertyName, event2);
 											break; // exit for loop if mapping is present and addressed
 											
 										}
@@ -755,7 +756,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 							String propertyName = rt.getHref().getLastSegment();
 							// create a property object
 							Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-							parseInlineEntities(reader, entity, event, propertyName, o);
+							this.parseInlineEntities(reader, entity, event, propertyName, o);
 							// This break is added to not handle additional inline entities here. Those entries shall be handled in next else-if block.
 							break; 
 						} else if(event.isEndElement() && event.asEndElement().getName().equals(ATOM_FEED.getLocalPart())){
@@ -766,7 +767,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					String propertyName = rt.getHref().getLastSegment();
 					// create a property object
 					Object o = ReflectUtils.getPropertyObject(entity, propertyName);
-					parseInlineEntities(reader, entity, event, propertyName, o);
+					this.parseInlineEntities(reader, entity, event, propertyName, o);
 				}
 			}
 			return rt;
@@ -806,9 +807,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					ParameterizedType listType = (ParameterizedType) field.getGenericType();
 					Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
 					// Create new Item Instance
-					Object obj;
-					obj = listClass.newInstance();
-
+					Object obj = listClass.newInstance();
 					// create a new instance and populate the properties
 					this.parseEntry(reader, event.asStartElement(), (T) obj);
 					((List) o).add(obj);

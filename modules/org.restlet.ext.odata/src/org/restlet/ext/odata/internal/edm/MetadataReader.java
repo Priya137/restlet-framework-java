@@ -121,7 +121,7 @@ public class MetadataReader extends DefaultHandler {
      */
     public MetadataReader(Metadata metadata) {
         this.states = new ArrayList<State>();
-        pushState(State.NONE);
+        this.pushState(State.NONE);
         this.currentMetadata = metadata;
     }
 
@@ -513,7 +513,7 @@ public class MetadataReader extends DefaultHandler {
             Attributes attrs) throws SAXException {
 
         if ("schema".equalsIgnoreCase(localName)) {
-            pushState(State.SCHEMA);
+            this.pushState(State.SCHEMA);
             currentSchema = new Schema();
             this.currentMetadata.getSchemas().add(currentSchema);
 
@@ -522,14 +522,14 @@ public class MetadataReader extends DefaultHandler {
             this.currentSchema.setNamespace(namespace);
             registeredNamespaces.add(namespace);
         } else if ("using".equalsIgnoreCase(localName)) {
-            pushState(State.USING);
+            this.pushState(State.USING);
             Namespace namespace = new Namespace(attrs.getValue("Namespace"));
             namespace.setAlias(attrs.getValue("Alias"));
             this.currentSchema.getReferencedNamespaces().add(namespace);
         } else if ("documentation".equalsIgnoreCase(localName)) {
-            pushState(State.DOCUMENTATION);
+            this.pushState(State.DOCUMENTATION);
         } else if ("entityType".equalsIgnoreCase(localName)) {
-            pushState(State.ENTITY_TYPE);
+            this.pushState(State.ENTITY_TYPE);
             currentEntityType = new EntityType(attrs.getValue("Name"));
             currentEntityType.setSchema(this.currentSchema);
             currentEntityType.setAbstractType(Boolean.parseBoolean(attrs
@@ -548,7 +548,7 @@ public class MetadataReader extends DefaultHandler {
             registeredEntityTypes.put(currentSchema.getNamespace().getName()
                     + "." + currentEntityType.getName(), currentEntityType);
         } else if ("key".equalsIgnoreCase(localName)) {
-            pushState(State.ENTITY_TYPE_KEY);
+            this.pushState(State.ENTITY_TYPE_KEY);
         } else if ("propertyRef".equalsIgnoreCase(localName)) {
             if (getState() == State.ENTITY_TYPE_KEY) {
                 if (currentEntityType.getKeys() == null) {
@@ -564,7 +564,7 @@ public class MetadataReader extends DefaultHandler {
                 property = new Property(attrs.getValue("Name"));
                 property.setType(new Type(attrs.getValue("Type")));
                 property.setDefaultValue(attrs.getValue("Default"));
-            } else if (type.toLowerCase().startsWith("collection")) { 
+            } else if (TypeUtils.isCollection(type)) { 
             	ComplexProperty p = new ComplexProperty(attrs.getValue("Name"));
             	String edmType = TypeUtils.getClassType(type);
                 p.setComplexType(new ComplexType("List<"+edmType+">"));
@@ -629,7 +629,7 @@ public class MetadataReader extends DefaultHandler {
             }
             
            if (getState() == State.ENTITY_TYPE) {
-                pushState(State.ENTITY_TYPE_PROPERTY);
+                this.pushState(State.ENTITY_TYPE_PROPERTY);
                 if (property instanceof ComplexProperty) {
                     this.currentEntityType.getComplexProperties().add(
                             (ComplexProperty) property);
@@ -637,7 +637,7 @@ public class MetadataReader extends DefaultHandler {
                     this.currentEntityType.getProperties().add(property);
                 }
             } else {
-                pushState(State.COMPLEX_TYPE_PROPERTY);
+                this.pushState(State.COMPLEX_TYPE_PROPERTY);
                 if (property instanceof ComplexProperty) {
                     this.currentComplexType.getComplexProperties().add(
                             (ComplexProperty) property);
@@ -650,7 +650,7 @@ public class MetadataReader extends DefaultHandler {
             discoverMapping(this.currentEntityType, property, currentMetadata,
                     attrs);
         } else if ("navigationProperty".equalsIgnoreCase(localName)) {
-            pushState(State.NAVIGATION_PROPERTY);
+            this.pushState(State.NAVIGATION_PROPERTY);
             NavigationProperty property = new NavigationProperty(
                     attrs.getValue("Name"));
             property.setFromRole(new AssociationEnd(attrs.getValue("FromRole")));
@@ -659,7 +659,7 @@ public class MetadataReader extends DefaultHandler {
             property.setToRole(new AssociationEnd(attrs.getValue("ToRole")));
             currentEntityType.getAssociations().add(property);
         } else if ("complexType".equalsIgnoreCase(localName)) {
-            pushState(State.COMPLEX_TYPE);
+            this.pushState(State.COMPLEX_TYPE);
             currentComplexType = new ComplexType(attrs.getValue("Name"));
             currentComplexType.setSchema(this.currentSchema);
 
@@ -672,29 +672,29 @@ public class MetadataReader extends DefaultHandler {
             registeredComplexTypes.put(currentSchema.getNamespace().getName()
                     + "." + currentComplexType.getName(), currentComplexType);
         } else if ("association".equalsIgnoreCase(localName)) {
-            pushState(State.ASSOCIATION);
+            this.pushState(State.ASSOCIATION);
             currentAssociation = new Association(attrs.getValue("Name"));
             currentSchema.getAssociations().add(currentAssociation);
             registeredAssociations.put(currentSchema.getNamespace().getName()
                     + "." + currentAssociation.getName(), currentAssociation);
         } else if ("end".equalsIgnoreCase(localName)) {
             if (getState() == State.ASSOCIATION) {
-                pushState(State.ASSOCIATION_END);
+                this.pushState(State.ASSOCIATION_END);
                 AssociationEnd end = new AssociationEnd(attrs.getValue("Role"));
                 end.setMultiplicity(attrs.getValue("Multiplicity"));
                 end.setType(new EntityType(attrs.getValue("Type")));
                 currentAssociation.getEnds().add(end);
             } else {
-                pushState(State.ASSOCIATION_SET_END);
+                this.pushState(State.ASSOCIATION_SET_END);
                 AssociationSetEnd end = new AssociationSetEnd(
                         attrs.getValue("Role"));
                 end.setType(new EntitySet(attrs.getValue("EntitySet")));
                 currentAssociationSet.getEnds().add(end);
             }
         } else if ("onDelete".equalsIgnoreCase(localName)) {
-            pushState(State.ON_DELETE);
+            this.pushState(State.ON_DELETE);
         } else if ("referentialConstraint".equalsIgnoreCase(localName)) {
-            pushState(State.REFERENTIAL_CONSTRAINT);
+            this.pushState(State.REFERENTIAL_CONSTRAINT);
         } else if ("functionImport".equalsIgnoreCase(localName)) {
             currentFunctionImport = new FunctionImport(attrs.getValue("Name"));
             currentFunctionImport.setReturnType(attrs.getValue("ReturnType"));
@@ -711,7 +711,7 @@ public class MetadataReader extends DefaultHandler {
 				currentFunctionImport.setJavaReturnType(className);
 				currentFunctionImport.setComplex(true);
 			} else if (attrs.getValue("ReturnType") != null) {
-				if (attrs.getValue("ReturnType").startsWith("Collection")) {
+				if (TypeUtils.isCollection(attrs.getValue("ReturnType"))) {
 					String type = TypeUtils.getClassType(attrs.getValue("ReturnType"));
 					currentFunctionImport.setJavaReturnType("List<"+type+">");
 					currentFunctionImport.setReturnType(type);
@@ -749,12 +749,12 @@ public class MetadataReader extends DefaultHandler {
                         currentFunctionImport);
             }
 
-            pushState(State.FUNCTION_IMPORT);
+            this.pushState(State.FUNCTION_IMPORT);
         } else if ("parameter".equalsIgnoreCase(localName)) {
             if (State.FUNCTION_IMPORT == getState()) {
                 Parameter parameter = new Parameter(attrs.getValue("Name"));
                 parameter.setType(attrs.getValue("Type"));
-                if(attrs.getValue("Type").startsWith("Collection")){
+                if(TypeUtils.isCollection(attrs.getValue("Type"))){
                 	String edmType = TypeUtils.getClassType(attrs.getValue("Type"));
 					parameter.setJavaType("List<"+edmType+">");
                 }else{
@@ -776,11 +776,11 @@ public class MetadataReader extends DefaultHandler {
 
                 currentFunctionImport.getParameters().add(parameter);
             }
-            pushState(State.PARAMETER);
+            this.pushState(State.PARAMETER);
         } else if ("function".equalsIgnoreCase(localName)) {
-            pushState(State.FUNCTION);
+            this.pushState(State.FUNCTION);
         } else if ("entityContainer".equalsIgnoreCase(localName)) {
-            pushState(State.ENTITY_CONTAINER);
+            this.pushState(State.ENTITY_CONTAINER);
             currentEntityContainer = new EntityContainer(attrs.getValue("Name"));
             currentEntityContainer.setDefaultEntityContainer(Boolean
                     .parseBoolean(attrs.getValue(
@@ -796,14 +796,14 @@ public class MetadataReader extends DefaultHandler {
                     + "." + currentEntityContainer.getName(),
                     currentEntityContainer);
         } else if ("entitySet".equalsIgnoreCase(localName)) {
-            pushState(State.ENTITY_SET);
+            this.pushState(State.ENTITY_SET);
             EntitySet entitySet = new EntitySet(attrs.getValue("Name"));
             registeredEntitySets.put(currentSchema.getNamespace().getName()
                     + "." + entitySet.getName(), entitySet);
             entitySet.setType(new EntityType(attrs.getValue("EntityType")));
             currentEntityContainer.getEntities().add(entitySet);
         } else if ("associationSet".equalsIgnoreCase(localName)) {
-            pushState(State.ASSOCIATION_SET);
+            this.pushState(State.ASSOCIATION_SET);
             currentAssociationSet = new AssociationSet(attrs.getValue("Name"));
             currentAssociationSet.setAssociation(new Association(attrs
                     .getValue("Association")));
