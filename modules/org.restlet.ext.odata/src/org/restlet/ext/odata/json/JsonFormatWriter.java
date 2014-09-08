@@ -9,9 +9,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.restlet.Context;
 import org.restlet.engine.util.Base64;
 import org.restlet.ext.json.JsonRepresentation;
@@ -21,7 +19,6 @@ import org.restlet.ext.odata.internal.edm.Property;
 import org.restlet.ext.odata.internal.edm.Type;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.validation.annotation.SystemGenerated;
-import org.xml.sax.SAXException;
 
 /**
  * 
@@ -70,11 +67,7 @@ public class JsonFormatWriter extends JsonRepresentation {
 		JsonWriter jw = new JsonWriter(writer);
 		jw.startObject(); // {
 		{
-			try {
-				this.writeEntity(jw, entity);
-			} catch (SAXException e) {
-			 logger.log(Level.INFO, e.getMessage());
-			}
+			this.writeEntity(jw, entity);
 		}
 		jw.endObject(); // }
 	}
@@ -86,9 +79,8 @@ public class JsonFormatWriter extends JsonRepresentation {
 	 *
 	 * @param writer the writer
 	 * @param entity the entity
-	 * @throws SAXException the sAX exception
 	 */
-	private void writeEntity(JsonWriter writer, Object entity) throws SAXException {
+	private void writeEntity(JsonWriter writer, Object entity) {
 		boolean isFirst = true;
 		for (Field field : entity.getClass().getDeclaredFields()) {
 			SystemGenerated systemGeneratedAnnotation = field
@@ -125,10 +117,9 @@ public class JsonFormatWriter extends JsonRepresentation {
 	 * @param entity the entity
 	 * @param prop the prop
 	 * @param getter the getter
-	 * @throws SAXException the sAX exception
 	 */
 	private void writeProperty(JsonWriter writer, Object entity, Property prop,
-			String getter) throws SAXException {
+			String getter) {
 		
 		for (Method method : entity.getClass().getDeclaredMethods()) {
 			if (method.getReturnType() != null
@@ -215,10 +206,8 @@ public class JsonFormatWriter extends JsonRepresentation {
 							}
 							if (isPrimitiveCollection) {
 								// collection of primitive 
-
 								Type collectionType = new Type(TypeUtils.toEdmType(listClass.getName()));
 								this.writePropertyValue(writer, collectionType, prop, object);
-								//this.writeCollectionValue(writer, listClass.getName(), prop, object);
 							} else {
 								// complex object which should be 
 								// handled as a separate entity
@@ -250,11 +239,7 @@ public class JsonFormatWriter extends JsonRepresentation {
 	private void writeComplexType(JsonWriter writer, Object value) {
 		writer.startObject();
 		{
-			try {
-				this.writeEntity(writer, value);
-			} catch (SAXException e) {
-				logger.log(Level.INFO, e.getMessage());
-			}
+			this.writeEntity(writer, value);
 		}
 		writer.endObject();
 		
@@ -276,7 +261,7 @@ public class JsonFormatWriter extends JsonRepresentation {
 		} else if (type.getName().endsWith("Boolean")) {
 			writer.writeBoolean((Boolean) pvalue);
 		} else if (type.getName().endsWith("Byte")) {
-			writer.writeString(Byte.toString((byte) pvalue));
+			writer.writeString(Byte.toString((Byte) pvalue));
 		} else if (type.getName().endsWith("DateTime")) {
 			writer.writeRaw(formatDateTimeForJson((Date) pvalue));
 		} else if (type.getName().endsWith("Decimal")) {
@@ -344,5 +329,4 @@ public class JsonFormatWriter extends JsonRepresentation {
 		}
 		return logger;
 	}
-
 }

@@ -13,7 +13,7 @@
 		<delete file="${library-location}/bundle/restlet_lgc-2.2.1.jar" />
 		<jar destfile="${library-location}/bundle/restlet_lgc-2.2.1.jar">
 			<zipgroupfileset dir="${library-location}" includes="org.restlet.ext.atom.jar, org.restlet.ext.crypto.jar, org.restlet.ext.freemarker.jar, 
-				org.restlet.ext.odata.jar, org.restlet.ext.xml.jar, org.restlet.jar, org.core4j*/*.jar, org.freemarker*/*.jar, com.google.gson*/*.jar,
+				org.restlet.ext.json.jar, org.restlet.ext.odata.jar, org.restlet.ext.xml.jar, org.restlet.jar, org.core4j*/*.jar, org.freemarker*/*.jar, com.google.gson*/*.jar, org.json*/*.jar, 
 				javax.ws.rs*/*.jar, org.jvnet.mimepull*/*.jar, org.apache.commons.cli*/*.jar" />
 			<manifest>
 				<attribute name="Main-Class" value="org.restlet.ext.odata.Generator" />
