@@ -8,15 +8,17 @@
 	</distributions>
 	
 	<dependencies>
-		<dependency type="module" id="core" />
 		<dependency type="module" id="atom" />
+		<dependency type="module" id="core" />
 		<dependency type="module" id="freemarker" excludes="android" />
+		<dependency type="module" id="json" />
 		<dependency type="module" id="xml" />
+		<dependency type="library" id="cli" />
 		<dependency type="library" id="freemarker" excludes="android" />
 		<dependency type="library" id="gson" />
-		<dependency type="library" id="mimepull" />
 		<dependency type="library" id="jaxrs" />
-		<dependency type="library" id="cli" />
+		<dependency type="library" id="json" />
+		<dependency type="library" id="mimepull" />
 	</dependencies>
 	<source edition="android">
 		<files-sets>
