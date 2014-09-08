@@ -74,6 +74,7 @@ import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.internal.edm.Property;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
+import org.restlet.ext.odata.json.JsonFormatWriter;
 import org.restlet.ext.odata.streaming.StreamReference;
 import org.restlet.ext.odata.xml.XmlFormatWriter;
 import org.restlet.ext.xml.DomRepresentation;
@@ -256,9 +257,13 @@ public class Service {
 						Entry entry = toEntry(entity);
 						entry.write(baos);
 					}else{
-						//TODO: VERBOSE implementation will be checked in later
-						/*final JsonFormatWriter r = new JsonFormatWriter(entity, (Metadata) getMetadata(), entity, isPostRequest);
-						r.write(baos);*/
+						/*
+						 * For JSON verbose implementation we have separate writer 
+						 * which will return the JSON representation of an entity 
+						 * for POST request.
+						 */
+						final JsonFormatWriter r = new JsonFormatWriter(entity, (Metadata) getMetadata(), entity, isPostRequest);
+						r.write(baos);
 					}
 					baos.flush();
 					StringRepresentation r = new StringRepresentation(baos.toString(), this.getMediaType());
@@ -1279,27 +1284,39 @@ public class Service {
 			}
 			// now do merge request for non-stream properties
 			this.mergeEntity(entity);
-		}else{
-			Entry entry = toEntry(entity);
+		} else {
+			try {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				if (MediaType.APPLICATION_ATOM.equals(this.getMediaType())) {
+					Entry entry = toEntry(entity);
+					entry.write(baos);
+				} else {
+					/*
+					 * For JSON verbose implementation we have separate writer
+					 * which will return the JSON representation of an entity
+					 * for PUT request.
+					 */
+					final JsonFormatWriter r = new JsonFormatWriter(entity,
+							(Metadata) getMetadata(), entity, isPostRequest);
+					r.write(baos);
+				}
+				baos.flush();
+				StringRepresentation r = new StringRepresentation(
+						baos.toString(), this.getMediaType());
+				String tag = getTag(entity);
 
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            entry.write(baos);
-            baos.flush();
-            StringRepresentation r = new StringRepresentation(baos.toString(), this.getMediaType());
-            String tag = getTag(entity);
-
-            if (tag != null) {
-                // Add a condition
-                resource.getConditions().setMatch(Arrays.asList(new Tag(tag)));
-            }
-            resource.put(r);
-        } catch (ResourceException re) {
-            throw new ResourceException(re.getStatus(),
-                    "Can't update this entity " + resource.getReference());
-        } finally {
-            this.latestRequest = resource.getRequest();
-            this.latestResponse = resource.getResponse();
+				if (tag != null) {
+					// Add a condition
+					resource.getConditions().setMatch(
+							Arrays.asList(new Tag(tag)));
+				}
+				resource.put(r);
+			} catch (ResourceException re) {
+				throw new ResourceException(re.getStatus(),
+						"Can't update this entity " + resource.getReference());
+			} finally {
+				this.latestRequest = resource.getRequest();
+				this.latestResponse = resource.getResponse();
 			}
 		}
     }
@@ -1320,7 +1337,7 @@ public class Service {
 	 *            The entity to put.
 	 * @throws Exception
 	 */
-	private void merge(Object entity,String id) {
+	private void merge(Object entity, String id) {
 		if (getMetadata() == null || entity == null) {
 			return;
 		}
@@ -1329,36 +1346,49 @@ public class Service {
 			List<Property> properties = type.getProperties();
 			Iterator<Property> iterator = properties.iterator();
 			while (iterator.hasNext()) {
-				Property prop = iterator.next();				
+				Property prop = iterator.next();
 				if (prop.getType().getName().contains("Stream")) {
-						try {
-							// merge request should not contain data for stream property, so setting it to null.
-							ReflectUtils.invokeSetter(entity, prop.getNormalizedName(), null);
-						} catch (Exception e) {		
-							getLogger().warning(
-			                        "Can't merge the object: " + e.getMessage());
-						}
+					try {
+						// merge request should not contain data for stream
+						// property, so setting it to null.
+						ReflectUtils.invokeSetter(entity,
+								prop.getNormalizedName(), null);
+					} catch (Exception e) {
+						getLogger().warning(
+								"Can't merge the object: " + e.getMessage());
+					}
 					break;
 				}
-				
+
 			}
 		}
-		Entry entry = toEntry(entity);
-		
+		// Entry entry = toEntry(entity);
+
 		ClientResource resource;
-		if(null!=id){
+		if (null != id) {
 			resource = createResource(new Reference(id));
+		} else {
+			resource = createResource(getSubpath(entity));
 		}
-		else{
-			resource= createResource(getSubpath(entity));
-		}
-	
 
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			entry.write(baos);
+			if (MediaType.APPLICATION_ATOM.equals(this.getMediaType())) {
+				Entry entry = toEntry(entity);
+				entry.write(baos);
+			} else {
+				/*
+				 * For JSON verbose implementation we have separate writer which
+				 * will return the JSON representation of an entity for POST
+				 * request.
+				 */
+				final JsonFormatWriter r = new JsonFormatWriter(entity,
+						(Metadata) getMetadata(), entity, isPostRequest);
+				r.write(baos);
+			}
 			baos.flush();
-			StringRepresentation r = new StringRepresentation(baos.toString(), MediaType.APPLICATION_ATOM);
+			StringRepresentation r = new StringRepresentation(baos.toString(),
+					this.getMediaType());
 			String tag = getTag(entity);
 
 			if (tag != null) {
@@ -1370,13 +1400,15 @@ public class Service {
 			throw new ResourceException(re.getStatus(),
 					"Can't update this entity " + resource.getReference());
 		} catch (IOException io) {
-			getLogger().warning(
-                    "IO exception while merging the entity: " + io.getMessage());
-        } finally {
-            this.latestRequest = resource.getRequest();
-            this.latestResponse = resource.getResponse();
-        }
-    }
+			getLogger()
+					.warning(
+							"IO exception while merging the entity: "
+									+ io.getMessage());
+		} finally {
+			this.latestRequest = resource.getRequest();
+			this.latestResponse = resource.getResponse();
+		}
+	}
 
 	/**
 	 * Gets Query parameter.
