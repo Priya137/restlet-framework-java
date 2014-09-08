@@ -63,7 +63,9 @@ import org.restlet.engine.header.HeaderReader;
 import org.restlet.engine.header.HeaderUtils;
 import org.restlet.ext.atom.Content;
 import org.restlet.ext.atom.Entry;
+import org.restlet.ext.atom.Feed;
 import org.restlet.ext.odata.batch.util.RestletBatchRequestHelper;
+import org.restlet.ext.odata.factory.FeedHandlerFactory;
 import org.restlet.ext.odata.internal.edm.AssociationEnd;
 import org.restlet.ext.odata.internal.edm.EntityContainer;
 import org.restlet.ext.odata.internal.edm.EntityType;
@@ -73,9 +75,9 @@ import org.restlet.ext.odata.internal.edm.Property;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.internal.reflect.ReflectUtils;
 import org.restlet.ext.odata.streaming.StreamReference;
-import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.ext.odata.xml.XmlFormatWriter;
 import org.restlet.ext.xml.DomRepresentation;
+import org.restlet.ext.xml.format.FormatParser;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -229,31 +231,26 @@ public class Service {
 	public <T> T addEntity(String entitySetName, Object entity) throws Exception {
 		if (entity != null) {
 			isPostRequest = Boolean.TRUE;
+			ClientResource resource = createResource(entitySetName);
+			if (getMetadata() == null) { 
+				throw new Exception("Can't add entity to this entity set " + resource.getReference()
+						+ " due to the lack of the service's metadata.");
+			}
 			Metadata metadata = (Metadata) getMetadata();
 			EntityType type = metadata.getEntityType(entity.getClass());
-			ClientResource resource = createResource(entitySetName);
 			Representation rep = null;
 			try {
 				if (type.isBlob()) { // entity type is set to BLOB if hasStream property of an entity is true.
 					
 					InputStream inputStream = this.handleStreamingWithSlug(entity, type);
-					if (getMetadata() == null) { 
-						throw new Exception("Can't add entity to this entity set " + resource.getReference()
-								+ " due to the lack of the service's metadata.");
-					}
 					//post the inputstream with slug header.
 					rep = resource.post(inputStream, slug, contentType);
 					
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata, null);
+                    FormatParser<T> feedHandler = FeedHandlerFactory.getParser(this.getMediaType(), type, entity.getClass(), metadata, null);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
-					this.merge(entity, feedHandler.getFeed().getEntries().get(0).getId()); //merge the remaining properties using merge request.
+					this.merge(entity, ((Feed) feedHandler.getFeed()).getEntries().get(0).getId()); //merge the remaining properties using merge request.
 					return newEntity;
 				} else {
-					if (getMetadata() == null) {
-						throw new Exception("Can't add entity to this entity set " + resource.getReference()
-								+ " due to the lack of the service's metadata.");
-					}
-					
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					if(MediaType.APPLICATION_ATOM.equals(this.getMediaType())){
 						Entry entry = toEntry(entity);
@@ -268,7 +265,7 @@ public class Service {
 					rep = resource.post(r);
 					// parse the response to populate the newly created entity object
 					
-                    AtomFeedHandler<T> feedHandler = new AtomFeedHandler<T>(type, entity.getClass(), metadata, null);
+                    FormatParser<T> feedHandler = FeedHandlerFactory.getParser(this.getMediaType(), type, entity.getClass(), metadata, null);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
                     return newEntity;
 				}

@@ -39,42 +39,45 @@ public class AtomCollectionPropertyHandler {
 
 		try {
 			Object obj = null;
-			String collectionType;
-			while (reader.hasNext()) {
-				XMLEvent event = reader.nextEvent();
+			if (entity instanceof List) { // check first if it is type of List
+				Field field = parentEntity.getClass().getDeclaredField(
+						startElement.getName().getLocalPart());
+				String currentMType = startElement.getAttributeByName(M_TYPE)
+						.getValue();
+				if (field.getGenericType() instanceof ParameterizedType) {
+					// determine what type of collection it is
+					ParameterizedType listType = (ParameterizedType) field
+							.getGenericType();
 
-				if (event.isEndElement()
-						&& event.asEndElement().getName()
-								.equals(startElement.getName())) {
-					return entity;
-				}
+					String collectionType = TypeUtils.getCollectionType(currentMType);
+					boolean isPrimitiveCollection = collectionType.toLowerCase().startsWith("edm");
+					Class<?> listClass = (Class<?>) listType
+							.getActualTypeArguments()[0];
+					while (reader.hasNext()) {
+						XMLEvent event = reader.nextEvent();
 
-				if (event.isStartElement()
-						&& event.asStartElement().getName().getNamespaceURI()
-								.equals(NS_DATASERVICES)
-						&& event.asStartElement().getName()
-								.equals(DATASERVICES_ELEMENT)) {
-					if (entity instanceof List) { // check first if it is type of List
-						Field field = parentEntity.getClass().getDeclaredField(
-								startElement.getName().getLocalPart());
-						String currentMType = startElement.getAttributeByName(
-								M_TYPE).getValue();
-						if (field.getGenericType() instanceof ParameterizedType) {
-							// determine what type of collection it is
-							ParameterizedType listType = (ParameterizedType) field
-									.getGenericType();
-							collectionType = TypeUtils
-									.getCollectionType(currentMType);
-							Class<?> listClass = (Class<?>) listType
-									.getActualTypeArguments()[0];
-							if (collectionType.toLowerCase().startsWith("edm")) { // simple type
+						if (event.isEndElement()
+								&& event.asEndElement().getName()
+										.equals(startElement.getName())) {
+							return entity;
+						}
+
+						if (event.isStartElement()
+								&& event.asStartElement().getName()
+										.getNamespaceURI()
+										.equals(NS_DATASERVICES)
+								&& event.asStartElement().getName()
+										.equals(DATASERVICES_ELEMENT)) {
+
+							if (isPrimitiveCollection) { // simple type
 								// just add value to list
 								Object value = TypeUtils.convert(listClass,
 										reader.getElementText());
 								((List) entity).add(value);
 							} else { // complex type
 								obj = listClass.newInstance();
-								// create a new instance and populate the properties
+								// create a new instance and populate the
+								// properties
 								AtomFeedHandler.parseProperties(reader,
 										event.asStartElement(), obj);
 								((List) entity).add(obj);

@@ -311,8 +311,14 @@ public class Query<T> implements Iterable<T> {
         return result;
     }
     
-	//TODO:Onkar javadoc
-    public String getParameter(String key){
+	/**
+	 * Gets the value the parameter in query string/url.
+	 * Returns null if parameter is not found
+	 *
+	 * @param key the key
+	 * @return the parameter
+	 */
+	public static String getParameter(String key){
     	String value = null;
     	String regex = "[\\?&](\\w+)=(\\w+)";
     	Pattern p = Pattern.compile(regex);
@@ -376,7 +382,7 @@ public class Query<T> implements Iterable<T> {
             FormatType formatType = FormatType.parse(service.getMediaType().getName());
             Representation result = null;
             
-        	formatType = validateFormatTypes(formatType);
+        	formatType = this.validateFormatTypes(formatType);
 
             try {
 				result = resource.get(service.getMediaType());
@@ -445,15 +451,21 @@ public class Query<T> implements Iterable<T> {
         }
     }
 
-	//TODO:Onkar javadoc
+	/**
+	 * Validates and fixes format types in service.mediaType as well as <br />
+	 * adds/updates the $format parameter in query string. 
+	 *
+	 * @param formatType the format type
+	 * @return the format type
+	 */
 	private FormatType validateFormatTypes(FormatType formatType) {
-		String format = this.getParameter("$format");
+		String format = Query.getParameter("$format");
 		if (formatType != FormatType.ATOM ){ // this is not atom, so add $format query parameter.
 			if(format==null){ // $format is already not present
 				this.addParameter("$format", formatType.name().toLowerCase());
 			}else{
-				if(getQuery()!=null){
-					getQuery().replaceAll(format, formatType.toString().toLowerCase()); // override the $format type as per specified in service.
+				if(this.getQuery()!=null){
+					this.getQuery().replaceAll(format, formatType.toString().toLowerCase()); // override the $format type as per specified in service.
 				}
 			}
 		}else{ // media type is set as atom; so check if we have $format set in query
