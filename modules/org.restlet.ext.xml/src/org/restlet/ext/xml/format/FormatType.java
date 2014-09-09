@@ -73,4 +73,32 @@ public enum FormatType {
 			return JSONLITEFULLMETADATA;
 		throw new UnsupportedOperationException("Unsupported format " + format);
 	}
+	
+	/**
+	 * Gets the media type corresponding to request format type.
+	 *
+	 * @param formatType the format type
+	 * @return the media type
+	 */
+	public static MediaType getMediaType(FormatType formatType) {
+		switch (formatType) {
+			case ATOM:
+				return MediaType.APPLICATION_ATOM;
+				
+			case JSONVERBOSE:
+				return MediaType.APPLICATION_JSONVERBOSE;
+				
+			case JSON:
+				return MediaType.APPLICATION_JSON;
+				
+			case JSONLITEFULLMETADATA:
+				return MediaType.APPLICATION_JSONLITE_FULLMETADATA;
+				
+			case JSONLITENOMETADATA:
+				return MediaType.APPLICATION_JSONLITE_NOMETADATA;
+				
+			default:
+				return MediaType.APPLICATION_ATOM;
+		}
+	}
 }

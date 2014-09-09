@@ -79,6 +79,7 @@ import org.restlet.ext.odata.streaming.StreamReference;
 import org.restlet.ext.odata.xml.XmlFormatWriter;
 import org.restlet.ext.xml.DomRepresentation;
 import org.restlet.ext.xml.format.FormatParser;
+import org.restlet.ext.xml.format.FormatType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
@@ -133,7 +134,7 @@ public class Service {
     
     private String slug = "";
     
-    private MediaType mediaType = MediaType.APPLICATION_ATOM;
+    private FormatType formatType = FormatType.ATOM;
    
     /** 
      * add Query parameter in request header for each call.
@@ -247,13 +248,13 @@ public class Service {
 					//post the inputstream with slug header.
 					rep = resource.post(inputStream, slug, contentType);
 					
-                    FormatParser<T> feedHandler = FeedHandlerFactory.getParser(this.getMediaType(), type, entity.getClass(), metadata, null);
+                    FormatParser<T> feedHandler = FeedHandlerFactory.getParser(this.getFormatType(), type, entity.getClass(), metadata, null);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
 					this.merge(entity, ((Feed) feedHandler.getFeed()).getEntries().get(0).getId()); //merge the remaining properties using merge request.
 					return newEntity;
 				} else {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					if(MediaType.APPLICATION_ATOM.equals(this.getMediaType())){
+					if(MediaType.APPLICATION_ATOM.equals(this.getFormatType())){
 						Entry entry = toEntry(entity);
 						entry.write(baos);
 					}else{
@@ -266,11 +267,11 @@ public class Service {
 						r.write(baos);
 					}
 					baos.flush();
-					StringRepresentation r = new StringRepresentation(baos.toString(), this.getMediaType());
+					StringRepresentation r = new StringRepresentation(baos.toString(), FormatType.getMediaType(this.getFormatType()));
 					rep = resource.post(r);
 					// parse the response to populate the newly created entity object
 					
-                    FormatParser<T> feedHandler = FeedHandlerFactory.getParser(this.getMediaType(), type, entity.getClass(), metadata, null);
+                    FormatParser<T> feedHandler = FeedHandlerFactory.getParser(this.getFormatType(), type, entity.getClass(), metadata, null);
                     T newEntity = RestletBatchRequestHelper.getEntity(rep, feedHandler);
                     return newEntity;
 				}
@@ -1287,7 +1288,7 @@ public class Service {
 		} else {
 			try {
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				if (MediaType.APPLICATION_ATOM.equals(this.getMediaType())) {
+				if (MediaType.APPLICATION_ATOM.equals(this.getFormatType())) {
 					Entry entry = toEntry(entity);
 					entry.write(baos);
 				} else {
@@ -1302,7 +1303,7 @@ public class Service {
 				}
 				baos.flush();
 				StringRepresentation r = new StringRepresentation(
-						baos.toString(), this.getMediaType());
+						baos.toString(), FormatType.getMediaType(this.getFormatType()));
 				String tag = getTag(entity);
 
 				if (tag != null) {
@@ -1373,7 +1374,7 @@ public class Service {
 
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			if (MediaType.APPLICATION_ATOM.equals(this.getMediaType())) {
+			if (MediaType.APPLICATION_ATOM.equals(this.getFormatType())) {
 				Entry entry = toEntry(entity);
 				entry.write(baos);
 			} else {
@@ -1388,7 +1389,7 @@ public class Service {
 			}
 			baos.flush();
 			StringRepresentation r = new StringRepresentation(baos.toString(),
-					this.getMediaType());
+					FormatType.getMediaType(this.getFormatType()));
 			String tag = getTag(entity);
 
 			if (tag != null) {
@@ -1431,18 +1432,18 @@ public class Service {
 	/**
 	 * @return the mediaType
 	 */
-	public MediaType getMediaType() {
-		if(mediaType == null){
-			mediaType = MediaType.APPLICATION_ATOM;
+	public FormatType getFormatType() {
+		if(formatType == null){
+			formatType = FormatType.ATOM;
 		}
-		return mediaType;
+		return formatType;
 	}
 
 	/**
 	 * @param mediaType the mediaType to set
 	 */
-	public void setMediaType(MediaType mediaType) {
-		this.mediaType = mediaType;
+	public void setFormatType(FormatType formatType) {
+		this.formatType = formatType;
 	}
 
 }

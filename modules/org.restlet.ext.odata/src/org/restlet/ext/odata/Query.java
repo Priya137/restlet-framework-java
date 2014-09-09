@@ -42,7 +42,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.restlet.Context;
-import org.restlet.data.MediaType;
 import org.restlet.data.Parameter;
 import org.restlet.data.Reference;
 import org.restlet.ext.atom.Entry;
@@ -316,13 +315,14 @@ public class Query<T> implements Iterable<T> {
 	 * Returns null if parameter is not found
 	 *
 	 * @param key the key
+	 * @param url the url
 	 * @return the parameter
 	 */
-	public static String getParameter(String key){
+	public static String getParameter(String key, String url){
     	String value = null;
-    	String regex = "[\\?&](\\w+)=(\\w+)";
+    	String regex = "[\\?&](\\$?\\w+)=(\\w+)";
     	Pattern p = Pattern.compile(regex);
-		Matcher m = p.matcher(key);
+		Matcher m = p.matcher(url);
 		while(m.find()){
 			if(m.group(1).equals(key)){
 				value = m.group(2);
@@ -379,13 +379,13 @@ public class Query<T> implements Iterable<T> {
                         "Can't execute the query without the service's metadata.");
             }
             
-            FormatType formatType = FormatType.parse(service.getMediaType().getName());
+            FormatType formatType = service.getFormatType();
             Representation result = null;
             
         	formatType = this.validateFormatTypes(formatType);
 
             try {
-				result = resource.get(service.getMediaType());
+				result = resource.get(FormatType.getMediaType(service.getFormatType()));
 			} catch (ResourceException e) {
 				getLogger().warning(
 						"Can't execute the query for the following reference: "
@@ -459,7 +459,7 @@ public class Query<T> implements Iterable<T> {
 	 * @return the format type
 	 */
 	private FormatType validateFormatTypes(FormatType formatType) {
-		String format = Query.getParameter("$format");
+		String format = Query.getParameter("$format", "?"+getQuery());
 		if (formatType != FormatType.ATOM ){ // this is not atom, so add $format query parameter.
 			if(format==null){ // $format is already not present
 				this.addParameter("$format", formatType.name().toLowerCase());
@@ -471,7 +471,7 @@ public class Query<T> implements Iterable<T> {
 		}else{ // media type is set as atom; so check if we have $format set in query
 			if(format!=null){ // $format option is set, so change the media type in service as well 
 				formatType = FormatType.parse(format);
-				service.setMediaType(MediaType.valueOf(formatType.name().toLowerCase()));
+				service.setFormatType(formatType);
 			}
 		}
 		return formatType;
