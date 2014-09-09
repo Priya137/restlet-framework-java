@@ -1,7 +1,6 @@
 package org.restlet.test.ext.odata.crud;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.Response;

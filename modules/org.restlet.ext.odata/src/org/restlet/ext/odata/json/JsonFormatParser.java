@@ -318,9 +318,7 @@ public abstract class JsonFormatParser<T> {
 					if (property instanceof ComplexProperty) { 
 						ComplexType complexType = ((ComplexProperty) property)
 								.getComplexType();
-						//TODO: move to method later
-						if (complexType.getName().toLowerCase()
-								.startsWith("list")) {// collection type
+						if (TypeUtils.startsWithList(complexType.getName())) {// collection type
 							Object o = ReflectUtils.getPropertyObject(entity,
 									name);
 							JsonCollectionPropertyHandler<T> jfp = new JsonCollectionPropertyHandler<T>(
@@ -350,8 +348,7 @@ public abstract class JsonFormatParser<T> {
 					if (property instanceof ComplexProperty) { 
 						ComplexType complexType = ((ComplexProperty) property)
 								.getComplexType();
-						if (complexType.getName().toLowerCase()
-								.startsWith("list")) {// collection type
+						if (TypeUtils.startsWithList(complexType.getName())) {// collection type
 							Object o = ReflectUtils.getPropertyObject(entity,
 									name);
 							JsonCollectionPropertyHandler<T> jfp = new JsonCollectionPropertyHandler<T>(

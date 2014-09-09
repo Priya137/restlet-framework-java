@@ -1,8 +1,6 @@
 package org.restlet.test.ext.odata.function;
 
-
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.data.Protocol;
@@ -16,9 +14,6 @@ public class FunctionTestCase extends RestletTestCase {
     /** Inner component. */
     private Component component = new Component();
 
-    /** OData service used for all tests. */
-    private FunctionService service;
-
     @Override
     protected void setUp() throws Exception {
         super.setUp();
@@ -28,8 +23,6 @@ public class FunctionTestCase extends RestletTestCase {
         component.getDefaultHost().attach("/Unit.svc",
                 new UnitApplication());
         component.start();
-
-        service = new FunctionService();
     }
 
     @Override

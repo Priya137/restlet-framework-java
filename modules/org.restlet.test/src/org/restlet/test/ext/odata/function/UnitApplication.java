@@ -19,12 +19,9 @@ public class UnitApplication extends Application {
 	private static class MyClapRestlet extends Restlet {
 		String file;
 
-		boolean updatable;
-
-		public MyClapRestlet(Context context, String file, boolean updatable) {
+		public MyClapRestlet(Context context, String file) {
 			super(context);
 			this.file = file;
-			this.updatable = updatable;
 		}
 
 		@Override
@@ -63,12 +60,10 @@ public class UnitApplication extends Application {
 		getConnectorService().getClientProtocols().add(Protocol.CLAP);
 		Router router = new Router(getContext());
 
-		router.attach("/$metadata", new MyClapRestlet(getContext(), "metadata",
-				true));
-		router.attach("/nextval", new MyClapRestlet(getContext(), "nextval",
-				true));
+		router.attach("/$metadata", new MyClapRestlet(getContext(), "metadata"));
+		router.attach("/nextval", new MyClapRestlet(getContext(), "nextval"));
 		router.attach("/convertDoubleArray", new MyClapRestlet(getContext(),
-				"convertDoubleArray", true));
+				"convertDoubleArray"));
 
 		return router;
 	}
