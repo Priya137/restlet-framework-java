@@ -298,7 +298,7 @@ public class JsonFormatWriter extends JsonRepresentation {
 	 * @return the string
 	 */
 	private String formatDateTimeForJson(Date date) {
-		return DATETIME_JSON_PREFIX + TypeUtils.toEdmDateTime(date)
+		return DATETIME_JSON_PREFIX + date.getTime()
 				+ DATETIME_JSON_SUFFIX;
 	}
 	

@@ -128,9 +128,14 @@ public class XmlFormatWriter extends SaxRepresentation {
 					if(isPrimitiveCollection){ // collection of primitives
 						mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
 					}else{	// collection of complex
-						// TODO:Onkar potential bug here
 						String[] className = listClass.getName().split("\\.");
-						mType = "Collection("+ className[0].toUpperCase() + "." + className[1] + ")";
+						String nameSpace = !getMetadata().getSchemas()
+								.isEmpty() ? (getMetadata().getSchemas().get(0))
+								.getNamespace().getName() : "";
+						String collectionType = !nameSpace.equals("") ? nameSpace
+								+ "." + className[3]
+								: className[3];
+						mType = "Collection(" + collectionType + ")";
 					}
 					List<?> obj = (List<?>) value;
 					// write collection property tag 
