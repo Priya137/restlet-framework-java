@@ -50,7 +50,7 @@ public class AtomCollectionPropertyHandler {
 							.getGenericType();
 
 					String collectionType = TypeUtils.getCollectionType(currentMType);
-					boolean isPrimitiveCollection = collectionType.toLowerCase().startsWith("edm");
+					boolean isPrimitiveCollection = TypeUtils.isEdmSimpleType(collectionType);
 					Class<?> listClass = (Class<?>) listType
 							.getActualTypeArguments()[0];
 					while (reader.hasNext()) {

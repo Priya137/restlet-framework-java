@@ -4,7 +4,7 @@ import org.restlet.data.MediaType;
 import org.restlet.ext.atom.Feed;
 import org.restlet.ext.odata.internal.edm.EntityType;
 import org.restlet.ext.odata.internal.edm.Metadata;
-//import org.restlet.ext.odata.json.JsonVerboseFeedHandler;
+import org.restlet.ext.odata.json.JsonVerboseFeedHandler;
 import org.restlet.ext.odata.xml.AtomFeedHandler;
 import org.restlet.ext.xml.format.FormatParser;
 import org.restlet.ext.xml.format.FormatType;
@@ -34,8 +34,8 @@ public class FeedHandlerFactory {
 			return (FormatParser<T>) new AtomFeedHandler<T>(entityType,
 					entityClass, metadata, feed);
 		} else if (formatType.equals(FormatType.JSONVERBOSE)) {
-			/*return (FormatParser<T>) new JsonVerboseFeedHandler<T>(entityType,
-					entityClass, metadata, feed);*/
+			return (FormatParser<T>) new JsonVerboseFeedHandler<T>(entityType,
+					entityClass, metadata, feed);
 		}
 		throw new IllegalArgumentException("Unable to locate format parser for " + formatType.toString());
 	}

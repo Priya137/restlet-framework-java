@@ -707,7 +707,7 @@ public class TypeUtils {
 			if (edmType == null){
 				return null;
 			}
-			if (edmType.toLowerCase().startsWith("edm.")) {
+			if (TypeUtils.isEdmSimpleType(edmType)) {
 				Class<?> javaClass = TypeUtils.toJavaClass(edmType);
 				return javaClass.getName();
 			} else {
@@ -743,7 +743,7 @@ public class TypeUtils {
      * @return true, if is primitive collection
      */
     public static boolean isPrimitiveCollection(Class<?> listClass){
-    	return listClass.getName().toLowerCase().startsWith("java");
+    	return listClass != null && listClass.getName().toLowerCase().startsWith("java");
     }
     
     /**
@@ -753,7 +753,17 @@ public class TypeUtils {
      * @return true, if is collection
      */
     public static boolean isCollection(String edmType){
-    	return edmType.toLowerCase().startsWith("collection");
+    	return edmType != null && edmType.toLowerCase().startsWith("collection");
+    }
+    
+    /**
+     * Checks if is edm simple type for which the type starts with "EDM".
+     *
+     * @param edmType the edm type
+     * @return true, if is edm simple type
+     */
+    public static boolean isEdmSimpleType(String edmType){
+    	return edmType != null && edmType.toLowerCase().startsWith("edm");
     }
     
     /**

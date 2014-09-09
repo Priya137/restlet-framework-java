@@ -321,7 +321,7 @@ public class AtomFeedHandler<T> extends XmlFormatParser implements
 					&& "true".equals(nullAttribute.getValue());
 			if (typeAttribute == null) { // Simple String
 				value = reader.getElementText();
-			} else if (typeAttribute.getValue().toLowerCase().startsWith("edm")
+			} else if (TypeUtils.isEdmSimpleType(typeAttribute.getValue())
 					&& !isNull) { // EDM Type
 				value = TypeUtils.fromEdm(reader.getElementText(),
 						typeAttribute.getValue());

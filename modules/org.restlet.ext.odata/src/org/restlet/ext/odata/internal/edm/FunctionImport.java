@@ -247,7 +247,7 @@ public class FunctionImport extends NamedObject {
      */
     public boolean isReturningEdmSimpleType() {
         return getReturnType() != null
-                && getReturnType().toLowerCase().startsWith("edm.");
+                && TypeUtils.isEdmSimpleType(getReturnType());
     }
 
     /**
@@ -259,7 +259,7 @@ public class FunctionImport extends NamedObject {
      */
     public boolean isReturningEntityType() {
         return getReturnType() != null
-                && getReturnType().toLowerCase().startsWith("edm.");
+                && TypeUtils.isEdmSimpleType(getReturnType());
     }
 
     /**

@@ -560,7 +560,7 @@ public class MetadataReader extends DefaultHandler {
         } else if ("property".equalsIgnoreCase(localName)) {
             String type = attrs.getValue("Type");
             Property property;
-            if (type.toLowerCase().startsWith("edm.")) {
+            if (TypeUtils.isEdmSimpleType(type)) {
                 property = new Property(attrs.getValue("Name"));
                 property.setType(new Type(attrs.getValue("Type")));
                 property.setDefaultValue(attrs.getValue("Default"));
