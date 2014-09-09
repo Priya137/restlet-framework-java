@@ -254,7 +254,7 @@ public class Service {
 					return newEntity;
 				} else {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					if(MediaType.APPLICATION_ATOM.equals(this.getFormatType())){
+					if(FormatType.ATOM.equals(this.getFormatType())){
 						Entry entry = toEntry(entity);
 						entry.write(baos);
 					}else{
@@ -1288,7 +1288,7 @@ public class Service {
 		} else {
 			try {
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				if (MediaType.APPLICATION_ATOM.equals(this.getFormatType())) {
+				if (FormatType.ATOM.equals(this.getFormatType())) {
 					Entry entry = toEntry(entity);
 					entry.write(baos);
 				} else {
@@ -1374,7 +1374,7 @@ public class Service {
 
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			if (MediaType.APPLICATION_ATOM.equals(this.getFormatType())) {
+			if (FormatType.ATOM.equals(this.getFormatType())) {
 				Entry entry = toEntry(entity);
 				entry.write(baos);
 			} else {
@@ -1430,7 +1430,7 @@ public class Service {
 	}
 
 	/**
-	 * @return the mediaType
+	 * @return the FormatType
 	 */
 	public FormatType getFormatType() {
 		if(formatType == null){
@@ -1440,7 +1440,7 @@ public class Service {
 	}
 
 	/**
-	 * @param mediaType the mediaType to set
+	 * @param formatType the FormatType to set
 	 */
 	public void setFormatType(FormatType formatType) {
 		this.formatType = formatType;
