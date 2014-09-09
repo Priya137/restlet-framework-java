@@ -129,12 +129,11 @@ public class XmlFormatWriter extends SaxRepresentation {
 						mType = "Collection("+ TypeUtils.toEdmType(listClass.getName()) + ")";
 					}else{	// collection of complex
 						String[] className = listClass.getName().split("\\.");
-						String nameSpace = !getMetadata().getSchemas()
-								.isEmpty() ? (getMetadata().getSchemas().get(0))
-								.getNamespace().getName() : "";
-						String collectionType = !nameSpace.equals("") ? nameSpace
-								+ "." + className[3]
-								: className[3];
+						String nameSpace = getMetadata().getSchemas().isEmpty() ? ""
+								: (getMetadata().getSchemas().get(0))
+										.getNamespace().getName();
+						String collectionType = nameSpace.equals("") ? className[className.length - 1]
+								: nameSpace + "." + className[className.length - 1];
 						mType = "Collection(" + collectionType + ")";
 					}
 					List<?> obj = (List<?>) value;
