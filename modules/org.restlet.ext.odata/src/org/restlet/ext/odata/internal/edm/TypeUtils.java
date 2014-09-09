@@ -767,6 +767,16 @@ public class TypeUtils {
     }
     
     /**
+     * Checks if this complex property starts with "list".
+     *
+     * @param propertyType the property type
+     * @return true, if successful
+     */
+    public static boolean startsWithList(String propertyType){
+    	return propertyType != null && propertyType.toLowerCase().startsWith("list");
+    }
+    
+    /**
      * Convert the String value to primitive class type. 
      *
      * @param targetType the target type

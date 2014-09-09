@@ -1,13 +1,10 @@
 package org.restlet.test.ext.odata.streamcrud;
 
-
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.Response;

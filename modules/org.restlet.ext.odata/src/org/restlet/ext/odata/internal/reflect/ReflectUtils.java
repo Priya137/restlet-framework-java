@@ -369,7 +369,7 @@ public class ReflectUtils {
      */
     public static String normalize(String name) {
         String result = null;
-        if(name != null && name.toLowerCase().startsWith("list")){
+        if(TypeUtils.startsWithList(name)){
         	return name;
         }
         if (name != null) {

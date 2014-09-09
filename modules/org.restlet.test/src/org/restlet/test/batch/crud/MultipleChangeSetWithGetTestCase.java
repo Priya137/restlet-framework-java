@@ -7,8 +7,7 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.restlet.Component;
 import org.restlet.Response;
 import org.restlet.data.Protocol;

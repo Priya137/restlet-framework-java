@@ -36,7 +36,6 @@ package org.restlet.test.ext.odata;
 import java.util.Iterator;
 import java.util.List;
 
-import org.hamcrest.core.IsInstanceOf;
 import org.restlet.Component;
 import org.restlet.data.Protocol;
 import org.restlet.ext.odata.Query;
@@ -47,8 +46,6 @@ import org.restlet.test.ext.odata.cafe.Contact;
 import org.restlet.test.ext.odata.cafe.Item;
 import org.restlet.test.ext.odata.cafe.Point;
 import org.restlet.test.ext.odata.cafe.StructAny;
-
-import sun.security.jca.GetInstance.Instance;
 
 /**
  * Test case for OData service.
@@ -127,9 +124,9 @@ public class ODataCafeTestCase extends RestletTestCase {
     	assertNotNull(point.getX());
     	assertTrue(point.getX().size()>0);
     	
-    	List<java.lang.Double> listX = point.getX();
+    	List<Double> listX = point.getX();
     	
-    	for (Iterator iterator = listX.iterator(); iterator.hasNext();) {
+    	for (Iterator<Double> iterator = listX.iterator(); iterator.hasNext();) {
 			Double element = (Double) iterator.next();
 			assertTrue(element instanceof Double);
 			assertNotNull(element);
@@ -138,9 +135,9 @@ public class ODataCafeTestCase extends RestletTestCase {
     	assertNotNull(point.getY());
     	assertTrue(point.getY().size()>0);
     	
-    	List<java.lang.Double> listY = point.getY();
+    	List<Double> listY = point.getY();
     	
-    	for (Iterator iterator = listY.iterator(); iterator.hasNext();) {
+    	for (Iterator<Double> iterator = listY.iterator(); iterator.hasNext();) {
 			Double element = (Double) iterator.next();
 			assertTrue(element instanceof Double);
 			assertNotNull(element);
@@ -151,7 +148,7 @@ public class ODataCafeTestCase extends RestletTestCase {
 		
     	List<StructAny> listComplexObject = point.getProperties();
     	
-    	for (Iterator iterator = listComplexObject.iterator(); iterator.hasNext();) {
+    	for (Iterator<StructAny> iterator = listComplexObject.iterator(); iterator.hasNext();) {
 			StructAny structAny = (StructAny) iterator.next();
 			assertEquals("md", structAny.getName());
 			assertEquals("FLOAT", structAny.getType());

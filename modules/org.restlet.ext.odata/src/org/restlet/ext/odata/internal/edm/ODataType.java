@@ -153,7 +153,7 @@ public class ODataType extends NamedObject implements Comparable<ODataType> {
 					}
 				} else {
 					String propertyType = property.getComplexType().getName();
-					if (propertyType.toLowerCase().startsWith("list")) { 
+					if (TypeUtils.startsWithList(propertyType)) { 
 						result.add("java.util.List");
 						result.add("java.util.ArrayList");
 					}
