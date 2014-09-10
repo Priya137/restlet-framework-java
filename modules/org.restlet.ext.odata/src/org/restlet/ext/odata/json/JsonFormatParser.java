@@ -216,24 +216,26 @@ public abstract class JsonFormatParser<T> {
 					// AssociationEnd association = this.metadata.getAssociation(entityType, name);
 					// FIXME Onkar : Handle inline entities later
 				} else {
-					Type type = property.getType();
-					if (TypeUtils.isEdmSimpleType(type.getName())) { // EDM Type
-						value = TypeUtils.fromEdm(event.asEndProperty()
-								.getValue(), type.getName());
-						if (value != null) {
-							String propertyName = ReflectUtils.normalize(name);
-							// Check if that property is java reserved key word.
-							// If so then prefix it with '_'
-							if (ReflectUtils.isReservedWord(propertyName)) {
-								propertyName = "_" + propertyName;
+					if (!(property instanceof ComplexProperty)) { // simple property
+						Type type = property.getType();
+						if (TypeUtils.isEdmSimpleType(type.getName())) { // EDM Type
+							value = TypeUtils.fromEdm(event.asEndProperty()
+									.getValue(), type.getName());
+							if (value != null) {
+								String propertyName = ReflectUtils
+										.normalize(name);
+								// Check if that property is java reserved key
+								// word. If so then prefix it with '_'
+								if (ReflectUtils.isReservedWord(propertyName)) {
+									propertyName = "_" + propertyName;
+								}
+								ReflectUtils.invokeSetter(entity, propertyName,
+										value);
 							}
-							ReflectUtils.invokeSetter(entity, propertyName,
-									value);
 						}
-					} else { // collection type or complex type
-						// the only context that lands us here is a null value
-						// for a complex property
-						// do nothing as we already have null set for it.
+					} else { 
+						// collection type or complex type the only context that lands us here is a null
+						// value for a complex property do nothing as we already have null set for it.
 					}
 				}
 			} else if (event.isStartObject()) {
@@ -333,9 +335,7 @@ public abstract class JsonFormatParser<T> {
 
 			} else if (METADATA_PROPERTY.equals(event.asStartProperty()
 					.getName())) {
-				// inlined entity or link starting with meta data, not if the
-				// value
-				// is a complex type
+				// inlined entity or link starting with meta data
 				this.parseMetadata(jsr);
 				Property property = this.metadata.getProperty(entity, name);
 				if (property == null) {
@@ -343,38 +343,19 @@ public abstract class JsonFormatParser<T> {
 					// this.metadata.getAssociation(entityType, name);
 					Object o = ReflectUtils.getPropertyObject(entity, name);
 					this.parseInlineEntities(jsr, name, entity, o);
-				} else {
-					// if this is collection or complex type
-					if (property instanceof ComplexProperty) { 
-						ComplexType complexType = ((ComplexProperty) property)
-								.getComplexType();
-						if (TypeUtils.startsWithList(complexType.getName())) {// collection type
-							Object o = ReflectUtils.getPropertyObject(entity,
-									name);
-							JsonCollectionPropertyHandler<T> jfp = new JsonCollectionPropertyHandler<T>(metadata, 
-									name, (T) o, entity);
-							jfp.parseCollection(jsr);
-						}
-					}
 				}
 			} else if (event.isStartProperty()) {
-				// inlined entity or complex object
+				// complex object within entity
 				// EntityType entityType =
 				// this.metadata.getEntityType(entity.getClass());
-				Property property = this.metadata.getProperty(entity, name);
-				if (property == null) {
-					do {
-						addProperty(entity, event.asStartProperty().getName(),
-								jsr);
-						event = jsr.nextEvent();
-					} while (!event.isEndObject());
-				} else {
-					// if this inline complex type
-					if (property instanceof ComplexProperty) { 
-						Object o = ReflectUtils.getPropertyObject(entity, name);
-						this.parseInlineEntities(jsr, name, entity, o);
-					}
-				}
+				Object o = ReflectUtils.getPropertyObject(entity, name);
+				do {
+					this.addProperty((T) o, event.asStartProperty().getName(),
+							jsr);
+					event = jsr.nextEvent();
+				} while (!event.isEndObject());
+				ReflectUtils.invokeSetter(entity, ReflectUtils.normalize(name),
+						o);
 			} else {
 				throw new IllegalArgumentException("What's that?");
 			}
