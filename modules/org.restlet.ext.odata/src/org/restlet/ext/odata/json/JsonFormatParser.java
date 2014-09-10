@@ -322,7 +322,7 @@ public abstract class JsonFormatParser<T> {
 							Object o = ReflectUtils.getPropertyObject(entity,
 									name);
 							JsonCollectionPropertyHandler<T> jfp = new JsonCollectionPropertyHandler<T>(
-									name, (T) o, entity);
+									metadata, name, (T) o, entity);
 							jfp.parseCollection(jsr);
 						}
 					}
@@ -351,7 +351,7 @@ public abstract class JsonFormatParser<T> {
 						if (TypeUtils.startsWithList(complexType.getName())) {// collection type
 							Object o = ReflectUtils.getPropertyObject(entity,
 									name);
-							JsonCollectionPropertyHandler<T> jfp = new JsonCollectionPropertyHandler<T>(
+							JsonCollectionPropertyHandler<T> jfp = new JsonCollectionPropertyHandler<T>(metadata, 
 									name, (T) o, entity);
 							jfp.parseCollection(jsr);
 						}
