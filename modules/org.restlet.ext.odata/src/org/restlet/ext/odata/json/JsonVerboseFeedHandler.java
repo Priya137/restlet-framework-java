@@ -46,7 +46,6 @@ public class JsonVerboseFeedHandler<T> extends JsonFormatParser<T> implements
 	 */
 	public JsonVerboseFeedHandler(EntityType entityType, Class<?> entityClass,
 			Metadata metadata, Feed feed) {
-		// this.entitySetName = entitySetName;
 		this.entityType = entityType;
 		this.entityClass = entityClass;
 		this.entities = new ArrayList<T>();

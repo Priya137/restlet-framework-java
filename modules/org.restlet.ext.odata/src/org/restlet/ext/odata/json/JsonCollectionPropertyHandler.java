@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.restlet.Context;
 import org.restlet.ext.atom.Feed;
+import org.restlet.ext.odata.internal.edm.Metadata;
 import org.restlet.ext.odata.internal.edm.TypeUtils;
 import org.restlet.ext.odata.json.JsonStreamReaderFactory.JsonStreamReader;
 import org.restlet.ext.odata.json.JsonStreamReaderFactory.JsonStreamReader.JsonEvent;
@@ -24,7 +25,8 @@ public class JsonCollectionPropertyHandler<T> extends JsonFormatParser<T> implem
 	private T entity;
 	private T parentEntity;
 
-	public JsonCollectionPropertyHandler(String propertyName, T entity, T parentEntity) {
+	public JsonCollectionPropertyHandler(Metadata metadata, String propertyName, T entity, T parentEntity) {
+		this.metadata = metadata;
 		this.propertyName = propertyName;
 		this.entity = entity;
 		this.parentEntity = parentEntity;
